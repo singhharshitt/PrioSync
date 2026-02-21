@@ -316,12 +316,14 @@ export const updateTask = async (req, res, next) => {
             await User.findByIdAndUpdate(req.user._id, { $inc: { tasksCompleted: -1 } });
         }
 
-        // Recalculate priority score
-        const allTasks = await Task.find({ owner: req.user._id });
+        // Recalculate priority score using current task set
+        let allTasks = await Task.find({ owner: req.user._id });
         await recomputeScore(task, allTasks);
 
         // Cascade: recalculate dependents' scores when this task status changes
         if (wasCompleted !== (task.status === 'completed')) {
+            // Refresh after saving so completion status is reflected in dependency checks
+            allTasks = await Task.find({ owner: req.user._id });
             const dependents = await Task.find({
                 owner: req.user._id,
                 dependencies: task._id,
@@ -353,11 +355,32 @@ export const deleteTask = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Task not found.' });
         }
 
+        const dependentTasks = await Task.find({
+            owner: req.user._id,
+            dependencies: task._id,
+        });
+
         // Remove this task from all dependency lists
         await Task.updateMany(
             { owner: req.user._id, dependencies: task._id },
             { $pull: { dependencies: task._id } }
         );
+
+        // Keep user aggregate counters aligned with task data
+        await User.findByIdAndUpdate(req.user._id, { $inc: { tasksCreated: -1 } });
+
+        // Recompute impacted dependent scores after unblocking dependencies
+        if (dependentTasks.length > 0) {
+            const dependentIds = dependentTasks.map((dep) => dep._id);
+            const [refreshedTasks, updatedDependents] = await Promise.all([
+                Task.find({ owner: req.user._id }),
+                Task.find({ owner: req.user._id, _id: { $in: dependentIds } }),
+            ]);
+
+            for (const dep of updatedDependents) {
+                await recomputeScore(dep, refreshedTasks);
+            }
+        }
 
         res.json({ success: true, message: 'Task deleted.' });
     } catch (error) {
