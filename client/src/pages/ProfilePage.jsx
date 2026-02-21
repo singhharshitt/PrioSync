@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { createElement, useEffect, useMemo, useState, useRef } from 'react';
 import { 
   Zap, CheckCircle, Clock, Target, Save, 
   Sparkles, TrendingUp, Calendar, Award,
@@ -391,13 +391,13 @@ const ProfilePage = () => {
   );
 };
 
-const StatCard = ({ label, value, suffix, icon: Icon, color, bg, delay, mounted }) => (
+const StatCard = ({ label, value, suffix, icon, color, bg, delay, mounted }) => (
   <div 
     className={`bg-white rounded-2xl p-5 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
     style={{ transitionDelay: `${delay}ms` }}
   >
     <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mb-3`}>
-      <Icon className={`w-5 h-5 ${color}`} />
+      {createElement(icon, { className: `w-5 h-5 ${color}` })}
     </div>
     <div className="flex items-baseline gap-1">
       <span className="text-2xl font-bold text-[#2B1B17]">{value}</span>

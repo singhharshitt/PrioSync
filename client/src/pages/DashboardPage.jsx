@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { createElement, useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Plus, Clock, TrendingUp, Zap, Target, 
@@ -15,10 +15,10 @@ import EmptyState from '../components/EmptyState.jsx';
 import LoadingSkeleton, { ChartSkeleton } from '../components/LoadingSkeleton.jsx';
 import useTasks from '../hooks/useTasks.js';
 
-const Stat = ({ value, label, icon: Icon, color = "text-[#FC703C]" }) => (
+const Stat = ({ value, label, icon, color = "text-[#FC703C]" }) => (
   <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200">
     <div className={`w-10 h-10 rounded-xl ${color.replace('text-', 'bg-')}/10 flex items-center justify-center mb-3`}>
-      <Icon className={`w-5 h-5 ${color}`} />
+      {createElement(icon, { className: `w-5 h-5 ${color}` })}
     </div>
     <p className="text-3xl font-bold text-[#2B1B17] mb-1">{value}</p>
     <p className="text-sm font-medium text-[#2B1B17]/50">{label}</p>
@@ -38,7 +38,11 @@ const DashboardPage = () => {
   const heroRef = useRef(null);
 
   useEffect(() => {
-    setMounted(true);
+    const frameId = window.requestAnimationFrame(() => setMounted(true));
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
     fetchTasks({ limit: 100 });
     fetchTopTasks();
     fetchStats();
@@ -188,7 +192,7 @@ const DashboardPage = () => {
                 ))
               ) : (
                 topTasks.slice(0, 4).map((task, index) => (
-                  <div 
+                  <div
                     key={task._id}
                     className={`bg-white rounded-2xl p-5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 cursor-pointer group ${
                       mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
@@ -198,11 +202,12 @@ const DashboardPage = () => {
                   >
                     <div className="flex items-start justify-between mb-3">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        task.priority >= 90 ? 'bg-red-100 text-red-600' : 
-                        task.priority >= 75 ? 'bg-orange-100 text-orange-600' : 
-                        'bg-yellow-100 text-yellow-600'
+                        task.priorityTier === 'critical' ? 'bg-red-100 text-red-600' :
+                        task.priorityTier === 'high' ? 'bg-orange-100 text-orange-600' :
+                        task.priorityTier === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                        'bg-green-100 text-green-600'
                       }`}>
-                        {task.priority}
+                        {task.priorityScore}
                       </span>
                       <CheckCircle2 className="w-5 h-5 text-[#2B1B17]/20 group-hover:text-[#FC703C] transition-colors" />
                     </div>

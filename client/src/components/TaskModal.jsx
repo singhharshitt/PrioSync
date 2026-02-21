@@ -80,7 +80,6 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [activeSection, setActiveSection] = useState(null);
 
   useEffect(() => {
     if (initialData) {

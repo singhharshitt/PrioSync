@@ -8,7 +8,6 @@ import { useEffect, useRef } from 'react';
 
 const LandingPage = () => {
   const heroRef = useRef(null);
-  const titleRef = useRef(null);
   
   useEffect(() => {
     // Scroll-triggered parallax effect for hero elements

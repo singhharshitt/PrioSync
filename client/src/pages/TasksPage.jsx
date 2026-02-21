@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { createElement, useEffect, useMemo, useState, useRef } from 'react';
 import {
   Plus, Search, LayoutGrid, List, Calendar,
   ArrowUpDown, CheckCircle2, Circle, Clock, AlertCircle,
@@ -39,7 +39,8 @@ const TasksPage = () => {
   const heroRef = useRef(null);
 
   useEffect(() => {
-    setMounted(true);
+    const frameId = window.requestAnimationFrame(() => setMounted(true));
+    return () => window.cancelAnimationFrame(frameId);
   }, []);
 
   useEffect(() => {
@@ -431,7 +432,7 @@ const TasksPage = () => {
   );
 };
 
-const StatCard = ({ label, value, icon: Icon, color, suffix, alert, delay, mounted }) => (
+const StatCard = ({ label, value, icon, color, suffix, alert, delay, mounted }) => (
   <div 
     className={`bg-white rounded-2xl p-5 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
     style={{ transitionDelay: `${delay}ms` }}
@@ -447,7 +448,7 @@ const StatCard = ({ label, value, icon: Icon, color, suffix, alert, delay, mount
         </div>
       </div>
       <div className={`w-10 h-10 rounded-xl ${color} bg-opacity-10 flex items-center justify-center`}>
-        <Icon className={`w-5 h-5 ${color.replace('bg-', 'text-')}`} />
+        {createElement(icon, { className: `w-5 h-5 ${color.replace('bg-', 'text-')}` })}
       </div>
     </div>
   </div>

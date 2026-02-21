@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { createElement, useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Eye, EyeOff, Zap, AlertCircle, ArrowRight, 
   Github, Twitter, Mail, User, Lock, Sparkles
@@ -8,10 +8,11 @@ import { useAuth } from '../context/AuthContext.jsx';
 
 const AuthPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, register } = useAuth();
   
   // Toggle between login and register
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(location.pathname !== '/register');
   
   // Form states
   const [form, setForm] = useState({ 
@@ -29,6 +30,10 @@ const AuthPage = () => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setIsLogin(location.pathname !== '/register');
+  }, [location.pathname]);
 
   // Reset form when switching modes
   useEffect(() => {
@@ -197,7 +202,7 @@ const AuthPage = () => {
         {/* Mode Toggle Tabs */}
         <div className="flex gap-2 mb-4 p-1 bg-[#2B1B17]/5 rounded-full w-fit mx-auto">
           <button
-            onClick={() => setIsLogin(true)}
+            onClick={() => navigate('/login')}
             className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
               isLogin 
                 ? 'bg-[#2B1B17] text-white shadow-md' 
@@ -207,7 +212,7 @@ const AuthPage = () => {
             Sign In
           </button>
           <button
-            onClick={() => setIsLogin(false)}
+            onClick={() => navigate('/register')}
             className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
               !isLogin 
                 ? 'bg-[#FC703C] text-white shadow-md' 
@@ -407,7 +412,7 @@ const AuthPage = () => {
               { icon: Mail, label: 'Google', color: 'hover:bg-red-50 hover:border-red-200' },
               { icon: Github, label: 'GitHub', color: 'hover:bg-gray-100 hover:border-gray-300' },
               { icon: Twitter, label: 'Twitter', color: 'hover:bg-blue-50 hover:border-blue-200' }
-            ].map(({ icon: Icon, label, color }) => (
+            ].map(({ icon, label, color }) => (
               <button
                 key={label}
                 type="button"
@@ -421,7 +426,7 @@ const AuthPage = () => {
                   transition-all duration-150 group
                 `}
               >
-                <Icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                {createElement(icon, { className: 'w-4 h-4 group-hover:scale-110 transition-transform' })}
                 <span className="text-xs hidden sm:inline font-medium">{label}</span>
               </button>
             ))}

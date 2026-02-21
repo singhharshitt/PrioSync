@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { GitBranch, Target, Zap, AlertCircle } from 'lucide-react';
+import { GitBranch, Target, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 /**
  * DependencyGraph - SVG-based task dependency visualizer with GSAP-inspired design

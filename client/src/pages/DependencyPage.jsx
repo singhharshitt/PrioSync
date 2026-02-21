@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { createElement, useEffect, useState, useRef } from 'react';
 import { 
   GitBranch, RefreshCw, Zap, Target, 
   ArrowRight, Sparkles, Layers, Calculator,
@@ -15,7 +15,11 @@ const DependencyPage = () => {
   const heroRef = useRef(null);
 
   useEffect(() => {
-    setMounted(true);
+    const frameId = window.requestAnimationFrame(() => setMounted(true));
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
     fetchDAG();
     fetchTasks({ limit: 200 });
   }, [fetchDAG, fetchTasks]);
@@ -186,7 +190,7 @@ const DependencyPage = () => {
                   color: '#2B1B17',
                   delay: 200
                 }
-              ].map(({ step, title, desc, icon: Icon, color, delay }) => (
+              ].map(({ step, title, desc, icon, color, delay }) => (
                 <div 
                   key={step}
                   className={`bg-white rounded-2xl p-6 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
@@ -199,7 +203,7 @@ const DependencyPage = () => {
                     {step}
                   </div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon className="w-4 h-4" style={{ color }} />
+                    {createElement(icon, { className: 'w-4 h-4', style: { color } })}
                     <h3 className="font-bold text-[#2B1B17]">{title}</h3>
                   </div>
                   <p className="text-sm text-[#2B1B17]/60 leading-relaxed">{desc}</p>
@@ -239,10 +243,10 @@ const DependencyPage = () => {
                     { label: 'Importance', weight: '25%', color: '#f97316', icon: Target },
                     { label: 'Deadline', weight: '25%', color: '#eab308', icon: Clock },
                     { label: 'Ease', weight: '20%', color: '#22c55e', icon: CheckCircle2 }
-                  ].map(({ label, weight, color, icon: Icon }) => (
+                  ].map(({ label, weight, color, icon }) => (
                     <div key={label} className="bg-white/5 rounded-xl p-4 border border-white/10">
                       <div className="flex items-center gap-2 mb-2">
-                        <Icon size={14} style={{ color }} />
+                        {createElement(icon, { size: 14, style: { color } })}
                         <span className="text-sm text-white/60">{label}</span>
                       </div>
                       <div className="flex items-center justify-between mb-2">

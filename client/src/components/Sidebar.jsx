@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, CheckSquare, GitBranch, User, LogOut, Menu, Zap,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { createElement, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const navItems = [
@@ -135,7 +135,7 @@ const Sidebar = () => {
 
       {/* Navigation Links */}
       <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto scrollbar-hide">
-        {navItems.map(({ to, label, icon: Icon }, index) => {
+        {navItems.map(({ to, label, icon }) => {
           const isActive = isActiveRoute(to);
           const isHovered = hoveredItem === to;
           
@@ -165,11 +165,11 @@ const Sidebar = () => {
                 relative flex items-center justify-center transition-transform duration-300
                 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:rotate-3'}
               `}>
-                <Icon 
-                  size={22} 
-                  strokeWidth={isActive ? 2.5 : 2} 
-                  className={isActive ? 'text-[#2B1B17]' : 'text-[#FC703C] group-hover:text-[#FC703C]'}
-                />
+                {createElement(icon, {
+                  size: 22,
+                  strokeWidth: isActive ? 2.5 : 2,
+                  className: isActive ? 'text-[#2B1B17]' : 'text-[#FC703C] group-hover:text-[#FC703C]',
+                })}
                 {/* Zap effect on hover for inactive items */}
                 {!isActive && isHovered && (
                   <Zap size={10} className="absolute -top-1 -right-1 text-[#FC703C] fill-[#FC703C] animate-pulse" />

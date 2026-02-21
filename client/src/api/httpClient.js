@@ -1,8 +1,10 @@
 import axios from 'axios';
 
 export const TOKEN_STORAGE_KEY = 'priosync_token';
+export const AUTH_UNAUTHORIZED_EVENT = 'priosync:auth:unauthorized';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const envBaseURL = import.meta.env.VITE_API_URL?.trim();
+const baseURL = envBaseURL ? envBaseURL.replace(/\/+$/, '') : '/api';
 
 const httpClient = axios.create({
   baseURL,
@@ -27,11 +29,22 @@ if (storedToken) {
   setAuthToken(storedToken);
 }
 
+httpClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 httpClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
       setAuthToken(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+      }
     }
     return Promise.reject(error);
   },

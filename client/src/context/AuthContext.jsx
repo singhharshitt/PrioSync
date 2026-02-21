@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import authService from '../services/authService.js';
+import { AUTH_UNAUTHORIZED_EVENT, setAuthToken } from '../api/httpClient.js';
 
 const AuthContext = createContext(null);
 
@@ -39,6 +40,19 @@ export const AuthProvider = ({ children }) => {
     restoreSession();
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setAuthToken(null);
+      setUser(null);
+      setLoading(false);
+    };
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
     };
   }, []);
 
