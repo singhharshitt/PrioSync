@@ -12,7 +12,7 @@ const SliderField = ({ label, name, value, onChange, min = 1, max = 5 }) => (
         <input
             type="range" min={min} max={max} name={name} value={value}
             onChange={onChange}
-            className="w-full h-1.5 accent-[#604C39]"
+            className="w-full h-1.5 accent-primary"
         />
         <div className="flex justify-between text-[10px] text-[#64748b]">
             <span>Low</span><span>High</span>
@@ -117,7 +117,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                     <h2 className="font-heading font-bold text-white text-xl">
                         {isEdit ? 'Edit Task' : 'New Task'}
                     </h2>
-                    <button onClick={onClose} className="p-2 rounded-lg text-[#627890] hover:bg-white/5 hover:text-white transition-colors">
+                    <button onClick={onClose} className="p-2 rounded-lg text-[#9E7C73] hover:bg-white/5 hover:text-white transition-colors">
                         <X size={18} />
                     </button>
                 </div>
@@ -185,7 +185,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                     )}
 
                     {/* Priority sliders */}
-                    <div className="p-4 rounded-xl bg-[#1e2d42] space-y-4">
+                    <div className="p-4 rounded-xl bg-[#3D2B26] space-y-4">
                         <p className="text-xs text-[#94a3b8] font-semibold uppercase tracking-wider">Priority Factors</p>
                         <SliderField label="Urgency" name="urgency" value={form.urgency} onChange={handleSlider} />
                         <SliderField label="Importance" name="importance" value={form.importance} onChange={handleSlider} />
@@ -203,7 +203,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                                             type="checkbox"
                                             checked={form.dependencies.includes(t._id)}
                                             onChange={() => toggleDep(t._id)}
-                                            className="accent-[#604C39] w-3.5 h-3.5"
+                                            className="accent-primary w-3.5 h-3.5"
                                         />
                                         <span className="text-xs text-[#94a3b8] group-hover:text-white transition-colors truncate">
                                             {t.title}

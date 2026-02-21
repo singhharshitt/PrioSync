@@ -1,53 +1,80 @@
 import { Bell, Search, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
+const navLinks = [
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/tasks', label: 'Tasks' },
+  { to: '/dependencies', label: 'Dependencies' },
+  { to: '/profile', label: 'Profile' },
+];
+
 /**
- * Navbar — top bar for dashboard layout
+ * Navbar - top bar for dashboard pages
  */
 const Navbar = ({ title = 'Dashboard' }) => {
-    const { user } = useAuth();
+  const { user } = useAuth();
+  const initials = user?.name
+    ?.split(' ')
+    .map((token) => token[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
-    return (
-        // Glass-morphism floating nav
-        <nav className="sticky top-6 z-50 w-full flex justify-center px-4 mb-10 transition-all duration-300">
-            <div className="flex items-center gap-8 px-8 py-3.5 rounded-full bg-white/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-white/40">
-
-                {/* Logo - Circular dot mark */}
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <span className="text-xl font-semibold text-primary tracking-tight">
-                        PRIOSYNC
-                    </span>
-                </div>
-
-                {/* Nav Links */}
-                <div className="hidden md:flex items-center gap-6">
-                    <a href="/dashboard" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
-                        Dashboard
-                    </a>
-                    <a href="/tasks" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
-                        Tasks
-                    </a>
-                    <a href="/analytics" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
-                        Analytics
-                    </a>
-                    <a href="/focus" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
-                        Focus Mode
-                    </a>
-                </div>
-
-                {/* Auth Buttons */}
-                <div className="flex items-center gap-3">
-                    <button className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
-                        Log in
-                    </button>
-                    <button className="px-5 py-2.5 text-sm font-medium text-white bg-primary rounded-full hover:bg-secondary transition-all hover:scale-105 shadow-md">
-                        Get Started
-                    </button>
-                </div>
+  return (
+    <nav className="sticky top-4 z-40 w-full px-4 sm:px-6 pt-4">
+      <div className="max-w-7xl mx-auto rounded-2xl bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgba(93,7,3,0.08)] px-4 sm:px-6 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-[#FC703C] flex items-center justify-center shrink-0">
+              <Zap size={16} className="text-white" />
             </div>
-        </nav>
-    );
+            <div className="min-w-0">
+              <p className="text-xs text-[#4A3A36] leading-none">PrioSync</p>
+              <h1 className="text-sm sm:text-base font-semibold text-[#2B1B17] truncate">{title}</h1>
+            </div>
+          </div>
+
+          <div className="hidden lg:flex items-center gap-5">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-sm font-medium text-[#4A3A36] hover:text-[#FC703C] transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              className="p-2 rounded-lg text-[#4A3A36] hover:bg-[#F4F3E6] hover:text-[#FC703C] transition-colors"
+              aria-label="Search"
+            >
+              <Search size={16} />
+            </button>
+            <button
+              type="button"
+              className="p-2 rounded-lg text-[#4A3A36] hover:bg-[#F4F3E6] hover:text-[#FC703C] transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell size={16} />
+            </button>
+            {user && (
+              <div className="hidden sm:flex items-center gap-2.5 pl-1">
+                <span className="w-8 h-8 rounded-full bg-[#FC703C] text-white text-xs font-bold flex items-center justify-center">
+                  {initials || 'U'}
+                </span>
+                <p className="text-sm font-medium text-[#2B1B17] max-w-36 truncate">{user.name}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
 };
 
 export default Navbar;

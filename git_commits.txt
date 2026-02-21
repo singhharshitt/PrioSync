@@ -1,0 +1,14 @@
+0377723 fixed some ui bugs
+b8a58ac chore: final polish and build configuration
+eba20e4 feat(pages): implement all app pages and routing
+067b8f6 feat(ui): add task cards, charts, and dependency graph visualizer
+dc81ff0 feat(ui): add core layout and reusable UI components
+fbffffe feat(client): add AuthContext and custom data hooks
+76e761a setup(client): configure tailwind, axios services, and global styles
+2f14e39 feat(api): implement auth and task management endpoints
+8928a3e feat(dsa): implement MaxHeap, DAG, and Priority Scoring Engine
+197d7be feat(backend): setup database connection, models, and middleware
+a4fc731 chore: initialize project structure and dependencies
+60d6e78 Merge branch 'main' of https://github.com/singhharshitt/PrioSync
+a7e75c9 Initial Commit: Project setup
+2e77cb5 Initial commit

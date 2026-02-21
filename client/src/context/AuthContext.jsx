@@ -1,65 +1,87 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { toast } from 'react-toastify';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import authService from '../services/authService.js';
 
 const AuthContext = createContext(null);
 
-/**
- * AuthProvider — wraps the app and provides current user state, login, logout, register
- */
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true); // Initial auth-check loading
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    // On mount: verify stored token and load user
-    useEffect(() => {
-        const token = localStorage.getItem('priosync_token');
-        if (!token) {
-            setLoading(false);
-            return;
+  useEffect(() => {
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      if (!authService.getStoredToken()) {
+        if (isMounted) {
+          setLoading(false);
         }
-        authService
-            .getMe()
-            .then(({ data }) => setUser(data.user))
-            .catch(() => localStorage.removeItem('priosync_token'))
-            .finally(() => setLoading(false));
-    }, []);
+        return;
+      }
 
-    const register = useCallback(async (formData) => {
-        const { data } = await authService.register(formData);
-        localStorage.setItem('priosync_token', data.token);
-        setUser(data.user);
-        toast.success(`Welcome to PrioSync, ${data.user.name}! 🎉`);
-        return data;
-    }, []);
+      try {
+        const data = await authService.getMe();
+        if (isMounted) {
+          setUser(data?.user || null);
+        }
+      } catch {
+        authService.logout();
+        if (isMounted) {
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
 
-    const login = useCallback(async (formData) => {
-        const { data } = await authService.login(formData);
-        localStorage.setItem('priosync_token', data.token);
-        setUser(data.user);
-        toast.success(`Welcome back, ${data.user.name}! 👋`);
-        return data;
-    }, []);
+    restoreSession();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-    const logout = useCallback(() => {
-        localStorage.removeItem('priosync_token');
-        setUser(null);
-        toast.info('Logged out successfully.');
-    }, []);
+  const login = useCallback(async (credentials) => {
+    const data = await authService.login(credentials);
+    setUser(data?.user || null);
+    return data;
+  }, []);
 
-    const updateUser = useCallback((updatedUser) => {
-        setUser(updatedUser);
-    }, []);
+  const register = useCallback(async (payload) => {
+    const data = await authService.register(payload);
+    setUser(data?.user || null);
+    return data;
+  }, []);
 
-    return (
-        <AuthContext.Provider value={{ user, loading, login, logout, register, updateUser }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  const logout = useCallback(() => {
+    authService.logout();
+    setUser(null);
+  }, []);
+
+  const updateUser = useCallback((nextUser) => {
+    setUser(nextUser || null);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      updateUser,
+    }),
+    [user, loading, login, register, logout, updateUser],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-    const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-    return ctx;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
 };

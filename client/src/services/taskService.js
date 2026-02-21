@@ -1,22 +1,45 @@
-import api from './api.js';
+import httpClient from '../api/httpClient.js';
 
 const taskService = {
-    /** GET /api/tasks */
-    getTasks: (params) => api.get('/tasks', { params }),
-    /** GET /api/tasks/top */
-    getTopTasks: () => api.get('/tasks/top'),
-    /** GET /api/tasks/stats */
-    getStats: () => api.get('/tasks/stats'),
-    /** GET /api/tasks/dag */
-    getDAG: () => api.get('/tasks/dag'),
-    /** GET /api/tasks/:id */
-    getTask: (id) => api.get(`/tasks/${id}`),
-    /** POST /api/tasks */
-    createTask: (data) => api.post('/tasks', data),
-    /** PUT /api/tasks/:id */
-    updateTask: (id, data) => api.put(`/tasks/${id}`, data),
-    /** DELETE /api/tasks/:id */
-    deleteTask: (id) => api.delete(`/tasks/${id}`),
+  async getTasks(params = {}) {
+    const { data } = await httpClient.get('/tasks', { params });
+    return data;
+  },
+
+  async getTask(id) {
+    const { data } = await httpClient.get(`/tasks/${id}`);
+    return data;
+  },
+
+  async getTopTasks() {
+    const { data } = await httpClient.get('/tasks/top');
+    return data;
+  },
+
+  async getStats() {
+    const { data } = await httpClient.get('/tasks/stats');
+    return data;
+  },
+
+  async getDAG() {
+    const { data } = await httpClient.get('/tasks/dag');
+    return data;
+  },
+
+  async createTask(payload) {
+    const { data } = await httpClient.post('/tasks', payload);
+    return data;
+  },
+
+  async updateTask(id, payload) {
+    const { data } = await httpClient.put(`/tasks/${id}`, payload);
+    return data;
+  },
+
+  async deleteTask(id) {
+    const { data } = await httpClient.delete(`/tasks/${id}`);
+    return data;
+  },
 };
 
 export default taskService;
