@@ -1,0 +1,563 @@
+@import url('https://fonts.googleapis.com/css2?family=Bpmf+Huninn&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import "tailwindcss";
+
+/* ==================== GLOBAL DESIGN TOKENS ==================== */
+:root {
+  /* PRIMARY BRAND COLORS */
+  --color-orange: #FC703C;
+  --color-cherry: #5D0703;
+
+  /* SECONDARY SOFT COLORS */
+  --color-cream: #F4F3E6;
+  --color-peach: #EEA175;
+
+  /* WHITE SYSTEM */
+  --color-white: #FFFFFF;
+  --color-soft-white: #FAFAFA;
+
+  /* DARK SYSTEM */
+  --color-primary-dark: #1F1F1F;
+  --color-deep-warm-dark: #2B1B17;
+  --color-muted-dark: #4A3A36;
+
+  /* COLOR ALIASES FOR SEMANTIC USE */
+  --color-success: #22c55e;
+  --color-warning: #f97316;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* COMPONENT SHADOWS (WARM) */
+  --shadow-warm: 0 1px 3px rgba(93, 7, 3, 0.08), 0 1px 2px rgba(93, 7, 3, 0.04);
+  --shadow-warm-md: 0 4px 6px rgba(93, 7, 3, 0.1), 0 2px 4px rgba(93, 7, 3, 0.06);
+  --shadow-warm-lg: 0 10px 15px rgba(93, 7, 3, 0.12), 0 4px 6px rgba(93, 7, 3, 0.08);
+
+  /* TEXT COLORS */
+  --text-heading: #2B1B17;
+  --text-subheading: #5D0703;
+  --text-body: #4A3A36;
+  --text-light: #6B5B56;
+  --text-inverse: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary-dark: #1F1F1F;
+    --color-deep-warm-dark: #2B1B17;
+    --color-muted-dark: #4A3A36;
+    --text-body: #E5DFD8;
+    --text-light: #CCC4BE;
+  }
+}
+
+@font-face {
+  font-family: 'Chillax';
+  src: url('./fonts/Chillax-Extralight.eot');
+  src: url('./fonts/Chillax-Extralight.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/Chillax-Extralight.woff2') format('woff2'),
+    url('./fonts/Chillax-Extralight.woff') format('woff'),
+    url('./fonts/Chillax-Extralight.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chillax';
+  src: url('./fonts/Chillax-Light.eot');
+  src: url('./fonts/Chillax-Light.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/Chillax-Light.woff2') format('woff2'),
+    url('./fonts/Chillax-Light.woff') format('woff'),
+    url('./fonts/Chillax-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chillax';
+  src: url('./fonts/Chillax-Regular.eot');
+  src: url('./fonts/Chillax-Regular.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/Chillax-Regular.woff2') format('woff2'),
+    url('./fonts/Chillax-Regular.woff') format('woff'),
+    url('./fonts/Chillax-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chillax';
+  src: url('./fonts/Chillax-Medium.eot');
+  src: url('./fonts/Chillax-Medium.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/Chillax-Medium.woff2') format('woff2'),
+    url('./fonts/Chillax-Medium.woff') format('woff'),
+    url('./fonts/Chillax-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chillax';
+  src: url('./fonts/Chillax-Semibold.eot');
+  src: url('./fonts/Chillax-Semibold.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/Chillax-Semibold.woff2') format('woff2'),
+    url('./fonts/Chillax-Semibold.woff') format('woff'),
+    url('./fonts/Chillax-Semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chillax';
+  src: url('./fonts/Chillax-Bold.eot');
+  src: url('./fonts/Chillax-Bold.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/Chillax-Bold.woff2') format('woff2'),
+    url('./fonts/Chillax-Bold.woff') format('woff'),
+    url('./fonts/Chillax-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chillax Variable';
+  src: url('./fonts/Chillax-Variable.eot');
+  src: url('./fonts/Chillax-Variable.eot?#iefix') format('embedded-opentype'),
+    url('./fonts/Chillax-Variable.woff2') format('woff2'),
+    url('./fonts/Chillax-Variable.woff') format('woff'),
+    url('./fonts/Chillax-Variable.ttf') format('truetype');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+
+.bpmf-huninn-regular {
+  font-family: "Bpmf Huninn", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Thin */
+.montserrat-thin {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 100;
+  font-style: normal;
+}
+
+/* Extra Light */
+.montserrat-extralight {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 200;
+  font-style: normal;
+}
+
+/* Light */
+.montserrat-light {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 300;
+  font-style: normal;
+}
+
+/* Regular (Normal) */
+.montserrat-regular {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Medium */
+.montserrat-medium {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* SemiBold */
+.montserrat-semibold {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Bold */
+.montserrat-bold {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Extra Bold */
+.montserrat-extrabold {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 800;
+  font-style: normal;
+}
+
+/* Black */
+.montserrat-black {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 900;
+  font-style: normal;
+}
+
+
+/* Regular (Normal) */
+.playfair-regular {
+  font-family: "Playfair Display", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Medium */
+.playfair-medium {
+  font-family: "Playfair Display", serif;
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* SemiBold */
+.playfair-semibold {
+  font-family: "Playfair Display", serif;
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Bold */
+.playfair-bold {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Extra Bold */
+.playfair-extrabold {
+  font-family: "Playfair Display", serif;
+  font-weight: 800;
+  font-style: normal;
+}
+
+/* Black */
+.playfair-black {
+  font-family: "Playfair Display", serif;
+  font-weight: 900;
+  font-style: normal;
+}
+
+/* Chillax Utilities */
+.chillax-extralight {
+  font-family: "Chillax", sans-serif;
+  font-weight: 200;
+  font-style: normal;
+}
+
+.chillax-light {
+  font-family: "Chillax", sans-serif;
+  font-weight: 300;
+  font-style: normal;
+}
+
+.chillax-regular {
+  font-family: "Chillax", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.chillax-medium {
+  font-family: "Chillax", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.chillax-semibold {
+  font-family: "Chillax", sans-serif;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.chillax-bold {
+  font-family: "Chillax", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* ==================== UTILITY COMPONENTS ==================== */
+
+.skeleton {
+  background: linear-gradient(90deg,
+      rgba(244, 243, 230, 0.4) 20%,
+      rgba(238, 161, 117, 0.3) 50%,
+      rgba(244, 243, 230, 0.4) 80%);
+  background-size: 220% 100%;
+  animation: shimmer 1.2s linear infinite;
+  border-radius: 0.5rem;
+}
+
+/* ==================== BUTTON COMPONENTS ==================== */
+
+.btn-primary {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  background-color: var(--color-orange);
+  color: var(--color-white);
+  box-shadow: var(--shadow-warm);
+}
+
+.btn-primary:hover {
+  background-color: #E85C2A;
+  box-shadow: var(--shadow-warm-md);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  background-color: #D94F20;
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  background-color: var(--color-white);
+  color: var(--color-orange);
+  border: 2px solid var(--color-orange);
+  box-shadow: var(--shadow-warm);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-soft-white);
+  box-shadow: var(--shadow-warm-md);
+  transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+  background-color: var(--color-cream);
+  transform: translateY(0);
+}
+
+.btn-accent {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  background-color: var(--color-cherry);
+  color: var(--color-white);
+  box-shadow: var(--shadow-warm);
+}
+
+.btn-accent:hover {
+  background-color: #7A0804;
+  box-shadow: var(--shadow-warm-md);
+  transform: translateY(-2px);
+}
+
+/* ==================== CARD COMPONENTS ==================== */
+
+.card {
+  @apply rounded-xl transition-all duration-200;
+  background-color: var(--color-white);
+  box-shadow: var(--shadow-warm);
+  border-color: transparent;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-warm-md);
+}
+
+.card-accent {
+  @apply rounded-xl;
+  background-color: var(--color-white);
+  box-shadow: var(--shadow-warm);
+  border-left: 4px solid var(--color-orange);
+}
+
+.panel {
+  @apply rounded-lg;
+  background-color: var(--color-cream);
+  box-shadow: var(--shadow-warm);
+}
+
+/* ==================== INPUT COMPONENTS ==================== */
+
+.input-field {
+  @apply w-full px-4 py-2 rounded-lg border-2 transition-all duration-200;
+  background-color: var(--color-soft-white);
+  border-color: #E8DDD2;
+  color: var(--text-body);
+}
+
+.input-field:focus {
+  border-color: var(--color-orange);
+  background-color: var(--color-white);
+  box-shadow: 0 0 0 3px rgba(252, 112, 60, 0.1);
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: var(--text-light);
+}
+
+/* ==================== BADGE COMPONENTS ==================== */
+
+.badge-critical {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #DC2626;
+}
+
+.badge-high {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+  background-color: rgba(252, 112, 60, 0.15);
+  color: var(--color-orange);
+}
+
+.badge-medium {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+  background-color: rgba(234, 179, 8, 0.15);
+  color: #CA8A04;
+}
+
+.badge-low {
+  @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #16A34A;
+}
+
+/* ==================== TEXT UTILITIES ==================== */
+
+.text-heading {
+  color: var(--text-heading);
+  font-weight: 600;
+}
+
+.text-subheading {
+  color: var(--text-subheading);
+  font-weight: 600;
+}
+
+.text-body {
+  color: var(--text-body);
+}
+
+.text-highlight {
+  color: var(--color-orange);
+  font-weight: 500;
+}
+
+/* ==================== GRADIENT UTILITIES ==================== */
+
+.gradient-primary {
+  background: linear-gradient(135deg, var(--color-orange) 0%, var(--color-peach) 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, var(--color-cherry) 0%, var(--color-orange) 100%);
+}
+
+.gradient-background {
+  background: linear-gradient(135deg, var(--color-cream) 0%, var(--color-white) 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-orange) 0%, var(--color-cherry) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ==================== GLASS MORPHISM ==================== */
+
+.glass {
+  @apply backdrop-blur-md;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-warm);
+}
+
+/* ==================== NAVIGATION LINKS ==================== */
+
+.sidebar-link {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200;
+  color: #CCC4BE;
+}
+
+.sidebar-link:hover {
+  background-color: rgba(252, 112, 60, 0.1);
+  color: var(--color-orange);
+}
+
+.sidebar-link.active {
+  background-color: rgba(252, 112, 60, 0.2);
+  color: var(--color-orange);
+  border-left: 3px solid var(--color-orange);
+  padding-left: calc(0.75rem - 3px);
+}
+
+.animate-fade-in {
+  animation: fade-in 320ms ease both;
+}
+
+.animate-fade-up {
+  animation: fade-up 420ms ease both;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 180% 0;
+  }
+
+  100% {
+    background-position: -40% 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
