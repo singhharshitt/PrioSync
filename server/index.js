@@ -11,7 +11,7 @@ import errorHandler from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '.env'), override: false });
 
 const app = express();
 
@@ -56,6 +56,11 @@ const requireDatabaseConnection = (req, res, next) => {
     message: 'Database is temporarily unavailable. Please try again shortly.',
   });
 };
+
+// Root route — Render health checks hit this
+app.get('/', (req, res) => {
+  res.send('PrioSync Backend API is running');
+});
 
 app.use('/api/auth', requireDatabaseConnection, authRoutes);
 app.use('/api/tasks', requireDatabaseConnection, taskRoutes);
