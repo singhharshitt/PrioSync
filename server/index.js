@@ -91,7 +91,7 @@ const connectDatabaseWithRetry = async () => {
 const startServer = () => {
   try {
     app.listen(PORT, () => {
-      console.log(`PrioSync Server running on http://localhost:${PORT}`);
+      console.log(`PrioSync Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       connectDatabaseWithRetry();
     });
