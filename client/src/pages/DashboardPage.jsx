@@ -1,8 +1,8 @@
 import { createElement, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { 
-  Plus, Clock, TrendingUp, Zap, Target, 
+import {
+  Plus, Clock, TrendingUp, Zap, Target,
   BarChart3, CheckCircle2, AlertCircle,
   ArrowRight, Sparkles, Activity,
   Flame, Trophy, Brain, ChevronRight, RefreshCw
@@ -21,7 +21,7 @@ import taskService from '../services/taskService.js';
 const useRealtime = (callback, interval = 30000) => {
   useEffect(() => {
     const invoke = () => {
-      Promise.resolve(callback()).catch(() => {});
+      Promise.resolve(callback()).catch(() => { });
     };
 
     invoke(); // Initial call
@@ -46,13 +46,13 @@ const formatDuration = (seconds) => {
 };
 
 const Stat = ({ value, label, icon, color = "text-[#FC703C]", trend, onClick }) => (
-  <div 
+  <div
     onClick={onClick}
     className={`relative bg-[#2B1B17] rounded-2xl p-6 border-2 border-[#FC703C]/10 shadow-[4px_4px_0_#FC703C]/20 hover:shadow-[6px_6px_0_#FC703C]/30 hover:-translate-y-1 transition-all duration-300 group overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
   >
     {/* Animated background gradient */}
     <div className="absolute inset-0 bg-gradient-to-br from-[#FC703C]/0 via-[#FC703C]/0 to-[#FC703C]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    
+
     <div className="relative flex items-start justify-between">
       <div>
         <div className={`w-12 h-12 rounded-xl bg-[#231612] border border-[#FC703C]/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
@@ -68,7 +68,7 @@ const Stat = ({ value, label, icon, color = "text-[#FC703C]", trend, onClick }) 
         </div>
         <p className="text-sm font-bold text-[#CCC4BE]/60 uppercase tracking-wider mt-1">{label}</p>
       </div>
-      
+
       {/* Decorative pinwheel */}
       <div className="opacity-10 group-hover:opacity-30 transition-opacity">
         <svg viewBox="0 0 24 24" className="w-16 h-16 animate-spin-slow text-[#FC703C]" fill="currentColor">
@@ -81,7 +81,7 @@ const Stat = ({ value, label, icon, color = "text-[#FC703C]", trend, onClick }) 
 
 const PerformanceInsight = ({ title, value, max, color, icon, description }) => {
   const percentage = Math.min((value / max) * 100, 100);
-  
+
   return (
     <div className="bg-[#231612] rounded-xl p-4 border border-[#FC703C]/10 hover:border-[#FC703C]/30 transition-all duration-300 group">
       <div className="flex items-center justify-between mb-3">
@@ -93,19 +93,19 @@ const PerformanceInsight = ({ title, value, max, color, icon, description }) => 
         </div>
         <span className="text-lg font-black text-[#FDF8F0]">{value}<span className="text-[#CCC4BE]/40 text-sm">/{max}</span></span>
       </div>
-      
+
       {/* Progress bar with glow effect */}
       <div className="relative h-2 bg-[#2B1B17] rounded-full overflow-hidden">
-        <div 
+        <div
           className="absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out group-hover:shadow-[0_0_10px_currentColor]"
-          style={{ 
-            width: `${percentage}%`, 
+          style={{
+            width: `${percentage}%`,
             backgroundColor: color,
             boxShadow: `0 0 20px ${color}40`
           }}
         />
       </div>
-      
+
       <p className="text-[10px] text-[#CCC4BE]/50 mt-2 leading-tight">{description}</p>
     </div>
   );
@@ -166,18 +166,26 @@ const DashboardPage = () => {
     return () => window.clearInterval(intervalId);
   }, [focusSessionActive, focusSessionStartedAt]);
 
-  // Parallax scroll effect
+  // Parallax scroll effect (rAF-throttled, desktop only)
   useEffect(() => {
+    let rafId = null;
     const handleScroll = () => {
-      if (!heroRef.current) return;
-      const scrollY = window.scrollY;
-      const heroContent = heroRef.current.querySelector('.hero-content');
-      if (heroContent) {
-        heroContent.style.transform = `translateY(${scrollY * 0.3}px)`;
-      }
+      if (rafId) return; // Skip if a frame is already queued
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (!heroRef.current || window.innerWidth < 768) return; // Skip on mobile
+        const scrollY = window.scrollY;
+        const heroContent = heroRef.current.querySelector('.hero-content');
+        if (heroContent) {
+          heroContent.style.transform = `translateY(${scrollY * 0.3}px)`;
+        }
+      });
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const handleOpenCreate = () => {
@@ -300,15 +308,15 @@ const DashboardPage = () => {
 
   const byStatus = stats
     ? {
-        pending: stats.pending,
-        'in-progress': stats.inProgress,
-        completed: stats.completed,
-        cancelled: stats.cancelled,
-      }
+      pending: stats.pending,
+      'in-progress': stats.inProgress,
+      completed: stats.completed,
+      cancelled: stats.cancelled,
+    }
     : {};
 
   const completionRate = stats ? Math.round((stats.completed / (stats.total || 1)) * 100) : 0;
-  
+
   // Calculate trends (mock - replace with real historical data)
   const completionTrend = stats ? Math.round((stats.completed / Math.max(stats.total - stats.completed, 1)) * 10 - 5) : 0;
   const focusScore = stats?.focusScore || 0;
@@ -316,17 +324,17 @@ const DashboardPage = () => {
   const velocity = stats?.velocity || 0;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular">
+    <div className="flex h-screen overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular overflow-x-hidden">
       <Sidebar />
-      
-      <main className="flex-1 flex flex-col overflow-y-auto relative">
+
+      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden relative">
         {/* Real-time indicator */}
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-[#2B1B17]/90 backdrop-blur-sm rounded-full border border-[#FC703C]/20 text-xs">
+        <div className="fixed top-4 right-4 z-40 flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-[#2B1B17]/90 backdrop-blur-sm rounded-full border border-[#FC703C]/20 text-xs">
           <div className={`w-2 h-2 rounded-full ${isRefreshing ? 'bg-[#FC703C] animate-pulse' : 'bg-green-500'}`} />
-          <span className="text-[#CCC4BE] font-medium">
+          <span className="text-[#CCC4BE] font-medium hidden sm:inline">
             {isRefreshing ? 'Syncing...' : `Updated ${lastUpdated.toLocaleTimeString()}`}
           </span>
-          <button 
+          <button
             onClick={refreshData}
             className={`p-1 hover:text-[#FC703C] transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
           >
@@ -335,17 +343,17 @@ const DashboardPage = () => {
         </div>
 
         {/* GSAP-Style Hero Section */}
-        <section ref={heroRef} className="relative bg-[#2B1B17] pt-24 pb-32 px-4 sm:px-8 overflow-hidden">
+        <section ref={heroRef} className="relative bg-[#2B1B17] pt-16 sm:pt-24 pb-24 sm:pb-32 px-4 sm:px-8 overflow-hidden">
           {/* Animated Background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[#FC703C]/20 rounded-full blur-[120px] animate-pulse-slow" />
-            <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-[#EEA175]/15 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
-            
+            <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[#FC703C]/20 rounded-full blur-[120px] animate-pulse-slow gpu-layer" />
+            <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-[#EEA175]/15 rounded-full blur-[100px] animate-pulse-slow gpu-layer" style={{ animationDelay: '2s' }} />
+
             {/* Floating shapes */}
             <div className="absolute top-20 left-[10%] w-12 h-12 border border-[#FC703C]/30 rotate-45 animate-float" />
             <div className="absolute top-40 right-[15%] w-8 h-8 rounded-full bg-[#EEA175]/20 animate-float-slow" />
             <div className="absolute bottom-20 left-[20%] w-16 h-16 border border-white/10 rounded-full animate-float" style={{ animationDelay: '1s' }} />
-            
+
             {/* Grid overlay */}
             <div className="absolute inset-0 opacity-[0.02]" style={{
               backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
@@ -359,27 +367,27 @@ const DashboardPage = () => {
             <div className="flex items-center gap-4 mb-8">
               <div className="relative w-16 h-16">
                 <svg viewBox="0 0 100 100" className="w-full h-full animate-spin-slow">
-                  <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C"/>
-                  <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175"/>
-                  <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#f8f7f2"/>
-                  <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C"/>
+                  <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C" />
+                  <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175" />
+                  <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#f8f7f2" />
+                  <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C" />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-3 h-3 bg-[#2B1B17] rounded-full" />
                 </div>
               </div>
-              <span className="text-white/40 text-3xl uppercase tracking-widest font-black">{`{ Dashboard }`}</span>
+              <span className="text-white/40 text-xl sm:text-3xl uppercase tracking-widest font-black">{`{ Dashboard }`}</span>
             </div>
 
             {/* Giant Typography */}
             <div className="mb-12">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white leading-[0.9] tracking-tight">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white leading-[0.9] tracking-tight break-words">
                 Your priorities,
               </h1>
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tight break-words">
                 <span className="text-[#FC703C]">scientifically</span>
               </h1>
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white leading-[0.9] tracking-tight">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white leading-[0.9] tracking-tight break-words">
                 sorted.
               </h1>
             </div>
@@ -405,7 +413,7 @@ const DashboardPage = () => {
 
           {/* Top Tasks Cards - Overlapping bottom */}
           <div className="max-w-7xl mx-auto relative z-20 mt-16 bg-[#DBB68F] ">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {loading ? (
                 [...Array(4)].map((_, i) => (
                   <div key={i} className="h-32 bg-white/10 rounded-2xl animate-pulse" />
@@ -414,19 +422,17 @@ const DashboardPage = () => {
                 topTasks.slice(0, 4).map((task, index) => (
                   <div
                     key={task._id}
-                    className={`bg-white rounded-2xl p-5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 cursor-pointer group ${
-                      mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-                    }`}
+                    className={`bg-white rounded-2xl p-5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 cursor-pointer group ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                      }`}
                     style={{ transitionDelay: `${index * 100}ms` }}
                     onClick={() => handleEdit(task)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        task.priorityTier === 'critical' ? 'bg-red-100 text-red-600' :
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${task.priorityTier === 'critical' ? 'bg-red-100 text-red-600' :
                         task.priorityTier === 'high' ? 'bg-orange-100 text-orange-600' :
-                        task.priorityTier === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                        'bg-green-100 text-green-600'
-                      }`}>
+                          task.priorityTier === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                            'bg-green-100 text-green-600'
+                        }`}>
                         {task.priorityScore}
                       </span>
                       <CheckCircle2 className="w-5 h-5 text-[#2B1B17]/20 group-hover:text-[#FC703C] transition-colors" />
@@ -445,24 +451,24 @@ const DashboardPage = () => {
         {/* Stats Bar */}
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 -mt-8 relative z-30">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Stat 
-              value={`${completionRate}%`} 
-              label="Completion Rate" 
+            <Stat
+              value={`${completionRate}%`}
+              label="Completion Rate"
               icon={CheckCircle2}
               color="text-green-500"
               trend={completionTrend}
               onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
             />
-            <Stat 
-              value={stats?.total || '0'} 
-              label="Total Tasks" 
+            <Stat
+              value={stats?.total || '0'}
+              label="Total Tasks"
               icon={Target}
               color="text-[#FC703C]"
               trend={stats ? Math.round((stats.inProgress / Math.max(stats.total, 1)) * 100) : 0}
             />
-            <Stat 
-              value={stats?.overdue || '0'} 
-              label="Overdue" 
+            <Stat
+              value={stats?.overdue || '0'}
+              label="Overdue"
               icon={AlertCircle}
               color="text-red-500"
               trend={stats?.overdue > 0 ? -10 : 0}
@@ -472,10 +478,10 @@ const DashboardPage = () => {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 py-12 space-y-12">
-          
+
           {/* Enhanced Analytics Section */}
           <section className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-[#FC703C]/10 border border-[#FC703C]/20">
                   <Activity size={20} className="text-[#FC703C]" />
@@ -485,7 +491,7 @@ const DashboardPage = () => {
                   <h2 className="text-2xl font-black text-[#2B1B17] tracking-tight">Performance Insights</h2>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={refreshData}
                 className="text-[#FC703C] hover:text-[#E85C2A] font-bold text-sm flex items-center gap-2 group px-4 py-2 rounded-xl hover:bg-[#FC703C]/10 transition-all"
               >
@@ -505,7 +511,7 @@ const DashboardPage = () => {
                     <span className="text-xs px-3 py-1 rounded-full bg-[#231612] text-[#CCC4BE] font-bold hover:bg-[#FC703C]/10 cursor-pointer transition-colors">30 Days</span>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {loading && !stats ? (
                     <>
@@ -530,7 +536,7 @@ const DashboardPage = () => {
                 {/* Animated background */}
                 <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-[#FC703C]/20 rounded-full blur-2xl animate-pulse-slow" />
                 <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-[#EEA175]/20 rounded-full blur-xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
-                
+
                 {/* Grid pattern */}
                 <div className="absolute inset-0 opacity-[0.02]" style={{
                   backgroundImage: `radial-gradient(#FC703C 1px, transparent 1px)`,
@@ -542,10 +548,10 @@ const DashboardPage = () => {
                     <Sparkles size={12} className="text-[#FC703C]" />
                     AI INSIGHT
                   </div>
-                  
+
                   <div className="mb-6">
                     <h3 className="text-2xl font-black mb-2 flex items-center gap-2">
-                      You're on fire! 
+                      You're on fire!
                       <Flame size={24} className="text-[#FC703C] animate-pulse" />
                     </h3>
                     <p className="text-[#CCC4BE] text-sm leading-relaxed">
@@ -557,7 +563,7 @@ const DashboardPage = () => {
 
                   {/* Performance Metrics */}
                   <div className="space-y-3 mb-6">
-                    <PerformanceInsight 
+                    <PerformanceInsight
                       title="Focus Score"
                       value={focusScore}
                       max={100}
@@ -565,7 +571,7 @@ const DashboardPage = () => {
                       icon={Brain}
                       description="Based on task completion speed and completion ratio"
                     />
-                    <PerformanceInsight 
+                    <PerformanceInsight
                       title="Streak"
                       value={streak}
                       max={30}
@@ -573,7 +579,7 @@ const DashboardPage = () => {
                       icon={Trophy}
                       description="Consecutive days with completed tasks"
                     />
-                    <PerformanceInsight 
+                    <PerformanceInsight
                       title="Velocity"
                       value={velocity}
                       max={50}
@@ -592,11 +598,11 @@ const DashboardPage = () => {
           </section>
 
           {/* Focus Mode CTA */}
-          <section className="relative rounded-3xl overflow-hidden bg-[#2B1B17] text-white p-8 sm:p-12 text-center shadow-[4px_4px_0_#452215] group">
+          <section className="relative rounded-3xl overflow-hidden bg-[#2B1B17] text-white p-5 sm:p-8 lg:p-12 text-center shadow-[4px_4px_0_#452215] group">
             <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute top-[-50%] left-[-20%] w-[600px] h-[600px] bg-[#FC703C]/20 rounded-full blur-[100px] animate-pulse-slow" />
-              <div className="absolute bottom-[-50%] right-[-20%] w-[500px] h-[500px] bg-[#EEA175]/15 rounded-full blur-[80px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
-              
+              <div className="absolute top-[-50%] left-[-20%] w-[600px] h-[600px] bg-[#FC703C]/20 rounded-full blur-[100px] animate-pulse-slow gpu-layer" />
+              <div className="absolute bottom-[-50%] right-[-20%] w-[500px] h-[500px] bg-[#EEA175]/15 rounded-full blur-[80px] animate-pulse-slow gpu-layer" style={{ animationDelay: '2s' }} />
+
               {/* Floating elements */}
               <div className="absolute top-10 left-10 w-8 h-8 border border-white/10 rotate-45 animate-float" />
               <div className="absolute bottom-10 right-10 w-6 h-6 rounded-full bg-white/5 animate-float-slow" />
@@ -615,7 +621,7 @@ const DashboardPage = () => {
               <button
                 onClick={handleFocusSessionToggle}
                 disabled={focusSessionSaving}
-                className="px-8 py-4 bg-[#FC703C] text-white font-black text-lg rounded-full hover:bg-[#E85C2A] transition-all shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 inline-flex items-center gap-2 uppercase tracking-wider disabled:opacity-70 disabled:cursor-not-allowed"
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-[#FC703C] text-white font-black text-base sm:text-lg rounded-full hover:bg-[#E85C2A] transition-all shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 inline-flex items-center gap-2 uppercase tracking-wider disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <Zap size={20} className="fill-current" />
                 {focusSessionActive
@@ -645,7 +651,7 @@ const DashboardPage = () => {
 
           {/* Task Backlog */}
           <section className="bg-[#DBB68F]  rounded-3xl p-8 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215]">
-            <div className="flex items-center justify-between mb-6 pb-6 border-b border-[#2B1B17]/5">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-6 pb-6 border-b border-[#2B1B17]/5">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-[#FC703C]/10">
                   <BarChart3 size={20} className="text-[#FC703C]" />
@@ -655,8 +661,8 @@ const DashboardPage = () => {
                   <h2 className="text-2xl font-black text-[#2B1B17] tracking-tight">Task Backlog</h2>
                 </div>
               </div>
-              <button 
-                onClick={handleOpenCreate} 
+              <button
+                onClick={handleOpenCreate}
                 className="flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-white font-bold rounded-full hover:bg-[#E85C2A] transition-all shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 uppercase tracking-wider text-sm"
               >
                 <Plus size={18} /> New Task
@@ -684,8 +690,8 @@ const DashboardPage = () => {
                 title="No tasks yet"
                 description="Create your first task to see your priority ranking."
                 action={(
-                  <button 
-                    onClick={handleOpenCreate} 
+                  <button
+                    onClick={handleOpenCreate}
                     className="flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-white font-bold rounded-full hover:bg-[#E85C2A] transition-all shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215]"
                   >
                     <Plus size={15} /> Create Task

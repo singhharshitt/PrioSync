@@ -33,7 +33,7 @@ const RetroSlider = ({ label, name, value, onChange, min = 1, max = 5, icon: Ico
         <span className="text-sm font-black text-[#FDF8F0] min-w-[2rem] text-right">{value}</span>
       </div>
     </div>
-    
+
     <div className="relative">
       <input
         type="range"
@@ -54,7 +54,7 @@ const RetroSlider = ({ label, name, value, onChange, min = 1, max = 5, icon: Ico
         ))}
       </div>
     </div>
-    
+
     <div className="flex justify-between text-[10px] font-bold text-[#CCC4BE]/50 uppercase tracking-wider">
       <span>Low</span>
       <span>High</span>
@@ -147,15 +147,15 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
   const depOptions = allTasks.filter((t) => t._id !== initialData?._id && t.status !== 'completed');
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2B1B17]/90 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="relative w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[#2B1B17] border-2 border-[#FC703C]/20 shadow-2xl shadow-orange-900/30 animate-[modalPop_0.4s_ease-out]">
-        
+
         {/* Background Texture */}
         <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
-             style={{ backgroundImage: 'radial-gradient(#FC703C 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+          style={{ backgroundImage: 'radial-gradient(#FC703C 1px, transparent 1px)', backgroundSize: '20px 20px' }}
         />
 
         {/* Animated Top Border */}
@@ -177,8 +177,8 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-2 rounded-xl text-[#CCC4BE] hover:bg-[#FC703C]/20 hover:text-[#FC703C] transition-all duration-200 hover:rotate-90"
           >
             <X size={20} strokeWidth={2.5} />
@@ -187,7 +187,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
 
         {/* Form Content */}
         <form onSubmit={handleSubmit} className="relative px-6 py-5 space-y-5 overflow-y-auto max-h-[calc(90vh-140px)]">
-          
+
           {/* Error Alert */}
           {error && (
             <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 animate-shake">
@@ -225,7 +225,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
           </div>
 
           {/* Deadline + Category Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider flex items-center gap-2">
                 <Clock size={12} className="text-[#FC703C]" />
@@ -242,14 +242,14 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                 <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#CCC4BE]/50 pointer-events-none" />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">Category</label>
               <div className="relative">
-                <select 
-                  name="category" 
-                  value={form.category} 
-                  onChange={handleChange} 
+                <select
+                  name="category"
+                  value={form.category}
+                  onChange={handleChange}
                   className="w-full px-3 py-3 rounded-xl bg-[#231612] border-2 border-[#FDF8F0]/10 text-[#FDF8F0] text-sm font-bold appearance-none transition-all duration-300 focus:border-[#FC703C]/50 focus:outline-none hover:border-[#FDF8F0]/20 cursor-pointer"
                 >
                   {CATEGORIES.map((c) => (
@@ -267,7 +267,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
           {isEdit && (
             <div className="space-y-2">
               <label className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">Status</label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {['pending', 'in-progress', 'completed', 'cancelled'].map((status) => (
                   <button
                     key={status}
@@ -275,8 +275,8 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                     onClick={() => setForm(prev => ({ ...prev, status }))}
                     className={`
                       px-2 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200
-                      ${form.status === status 
-                        ? 'bg-[#FC703C] text-[#2B1B17] shadow-lg shadow-orange-900/30 scale-105' 
+                      ${form.status === status
+                        ? 'bg-[#FC703C] text-[#2B1B17] shadow-lg shadow-orange-900/30 scale-105'
                         : 'bg-[#231612] text-[#CCC4BE] border border-[#FDF8F0]/10 hover:border-[#FC703C]/30'}
                     `}
                   >
@@ -290,33 +290,33 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
           {/* Priority Sliders Panel */}
           <div className="p-5 rounded-2xl bg-[#231612] border border-[#FC703C]/10 space-y-5 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#FC703C]/10 to-transparent rounded-bl-full" />
-            
+
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 size={16} className="text-[#FC703C]" />
               <p className="text-xs font-black text-[#FDF8F0] uppercase tracking-widest">Priority Matrix</p>
               <PinwheelIcon size={14} color="#FC703C" spinning={true} className="ml-auto" />
             </div>
 
-            <RetroSlider 
-              label="Urgency" 
-              name="urgency" 
-              value={form.urgency} 
-              onChange={handleSlider} 
+            <RetroSlider
+              label="Urgency"
+              name="urgency"
+              value={form.urgency}
+              onChange={handleSlider}
               icon={Zap}
               color="#EF4444"
             />
-            <RetroSlider 
-              label="Importance" 
-              name="importance" 
-              value={form.importance} 
+            <RetroSlider
+              label="Importance"
+              name="importance"
+              value={form.importance}
               onChange={handleSlider}
               icon={Target}
               color="#3B82F6"
             />
-            <RetroSlider 
-              label="Difficulty" 
-              name="difficulty" 
-              value={form.difficulty} 
+            <RetroSlider
+              label="Difficulty"
+              name="difficulty"
+              value={form.difficulty}
               onChange={handleSlider}
               icon={BarChart3}
               color="#8B5CF6"
@@ -332,19 +332,19 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
               </label>
               <div className="max-h-32 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                 {depOptions.map((t) => (
-                  <label 
-                    key={t._id} 
+                  <label
+                    key={t._id}
                     className={`
                       flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200
-                      ${form.dependencies.includes(t._id) 
-                        ? 'bg-[#FC703C]/20 border border-[#FC703C]/30' 
+                      ${form.dependencies.includes(t._id)
+                        ? 'bg-[#FC703C]/20 border border-[#FC703C]/30'
                         : 'bg-[#231612] border border-[#FDF8F0]/5 hover:border-[#FDF8F0]/20'}
                     `}
                   >
                     <div className={`
                       w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200
-                      ${form.dependencies.includes(t._id) 
-                        ? 'bg-[#FC703C] border-[#FC703C]' 
+                      ${form.dependencies.includes(t._id)
+                        ? 'bg-[#FC703C] border-[#FC703C]'
                         : 'border-[#CCC4BE]/30'}
                     `}>
                       {form.dependencies.includes(t._id) && <Check size={12} className="text-[#2B1B17]" strokeWidth={3} />}
@@ -363,8 +363,8 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                         text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider
                         ${t.priorityTier === 'critical' ? 'bg-red-500/20 text-red-400' :
                           t.priorityTier === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                          t.priorityTier === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-green-500/20 text-green-400'}
+                            t.priorityTier === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-green-500/20 text-green-400'}
                       `}>
                         {t.priorityTier}
                       </span>
@@ -377,16 +377,16 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
 
           {/* Footer Buttons */}
           <div className="flex gap-3 pt-2">
-            <button 
-              type="button" 
-              onClick={onClose} 
+            <button
+              type="button"
+              onClick={onClose}
               className="flex-1 px-4 py-3 rounded-xl bg-[#231612] border-2 border-[#FDF8F0]/10 text-[#CCC4BE] font-black text-sm uppercase tracking-wider transition-all duration-200 hover:border-[#CCC4BE]/30 hover:text-[#FDF8F0]"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              disabled={submitting} 
+            <button
+              type="submit"
+              disabled={submitting}
               className="flex-1 px-4 py-3 rounded-xl bg-[#FC703C] text-[#2B1B17] font-black text-sm uppercase tracking-wider transition-all duration-200 hover:bg-[#ff855c] hover:shadow-lg hover:shadow-orange-900/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
               {submitting ? (

@@ -1,6 +1,6 @@
 import { createElement, useEffect, useMemo, useState, useRef } from 'react';
-import { 
-  Zap, CheckCircle, Clock, Target, Save, 
+import {
+  Zap, CheckCircle, Clock, Target, Save,
   Sparkles, TrendingUp, Calendar, Award,
   ArrowRight, User
 } from 'lucide-react';
@@ -69,28 +69,28 @@ const ProfilePage = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* <Navbar title="Profile" /> */}
-        
+
         <main className="flex-1 overflow-y-auto">
           {/* GSAP-Style Hero Section */}
-          <section ref={heroRef} className="relative bg-[#2B1B17] pt-20 pb-28 px-4 sm:px-6 overflow-hidden">
+          <section ref={heroRef} className="relative bg-[#2B1B17] pt-16 sm:pt-20 pb-28 px-4 sm:px-6 overflow-hidden">
             {/* Animated Background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-[#FC703C]/20 rounded-full blur-[120px] animate-pulse-slow" />
               <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-[#EEA175]/15 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
-              
+
               {/* Floating shapes */}
               <div className="absolute top-16 left-[15%] w-8 h-8 border border-[#FC703C]/30 rotate-45 animate-float" />
               <div className="absolute top-32 right-[20%] w-6 h-6 rounded-full bg-[#EEA175]/20 animate-float-slow" />
               <div className="absolute bottom-20 left-[25%] w-10 h-10 border border-white/10 rounded-full animate-float" style={{ animationDelay: '1s' }} />
-              
+
               {/* Sparkles */}
               <div className="absolute top-[20%] right-[30%] text-[#FC703C]/40 animate-pulse">
                 <Sparkles size={20} />
               </div>
-              
+
               {/* Grid overlay */}
               <div className="absolute inset-0 opacity-[0.02]" style={{
                 backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
@@ -104,10 +104,10 @@ const ProfilePage = () => {
               <div className="flex items-center gap-3 mb-6">
                 <div className="relative w-12 h-12">
                   <svg viewBox="0 0 100 100" className="w-full h-full animate-spin-slow">
-                    <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C"/>
-                    <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175"/>
-                    <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#f8f7f2"/>
-                    <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C"/>
+                    <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C" />
+                    <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175" />
+                    <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#f8f7f2" />
+                    <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C" />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-2.5 h-2.5 bg-[#2B1B17] rounded-full" />
@@ -119,25 +119,25 @@ const ProfilePage = () => {
               {/* Giant Typography */}
               <div className="flex flex-col sm:flex-row sm:items-end gap-6">
                 <div className="flex-1">
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight">
                     Your
                   </h1>
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.9] tracking-tight">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.9] tracking-tight">
                     <span className="text-[#FC703C]">Productivity</span>
                   </h1>
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight">
                     Profile
                   </h1>
                 </div>
 
                 {/* Avatar Card - Overlapping */}
-                <div 
+                <div
                   className={`relative bg-white rounded-3xl p-6 shadow-[4px_4px_0_#452215] w-full sm:w-auto min-w-[200px] transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                 >
                   <div className="flex items-center gap-4">
                     <div
                       className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shrink-0 shadow-inner"
-                      style={{ 
+                      style={{
                         background: 'linear-gradient(135deg, #FC703C, #EEA175)',
                         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
                       }}
@@ -168,7 +168,7 @@ const ProfilePage = () => {
 
           {/* Main Content */}
           <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-12 relative z-20 pb-12 space-y-6">
-            
+
             {/* Profile Edit Card */}
             <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215]">
               <div className="flex items-center gap-3 mb-6">
@@ -187,17 +187,17 @@ const ProfilePage = () => {
                   <label className="text-xs uppercase tracking-widest text-[#2B1B17]/40 font-medium ml-1">
                     Display Name
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="flex-1 h-14 px-5 bg-[#f8f7f2] border border-[#2B1B17]/10 rounded-xl text-[#2B1B17] placeholder:text-[#2B1B17]/20 focus:outline-none focus:border-[#FC703C] focus:ring-2 focus:ring-[#FC703C]/20 transition-all"
                       placeholder="Your name"
                     />
-                    <button 
-                      onClick={handleSave} 
+                    <button
+                      onClick={handleSave}
                       disabled={saving || name === user?.name}
-                      className="h-14 px-6 bg-[#FC703C] text-white rounded-xl font-medium shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[4px_4px_0_#452215] disabled:hover:translate-y-0 transition-all duration-150 flex items-center gap-2 whitespace-nowrap"
+                      className="h-14 px-6 bg-[#FC703C] text-white rounded-xl font-medium shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[4px_4px_0_#452215] disabled:hover:translate-y-0 transition-all duration-150 flex items-center justify-center gap-2 whitespace-nowrap w-full sm:w-auto"
                     >
                       <Save size={18} />
                       {saving ? 'Saving...' : 'Save'}
@@ -216,7 +216,7 @@ const ProfilePage = () => {
                 </div>
 
                 {/* Member Info */}
-                <div className="flex items-center justify-between pt-4 border-t border-[#2B1B17]/5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-[#2B1B17]/5">
                   <div className="flex items-center gap-2 text-sm text-[#2B1B17]/50">
                     <Calendar size={16} />
                     <span>Member since {memberSince}</span>
@@ -231,38 +231,38 @@ const ProfilePage = () => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatCard 
-                label="Productivity" 
+              <StatCard
+                label="Productivity"
                 value={safePoints}
                 suffix="/100"
-                icon={Zap} 
+                icon={Zap}
                 color="text-[#FC703C]"
                 bg="bg-[#FC703C]/10"
                 delay={0}
                 mounted={mounted}
               />
-              <StatCard 
-                label="Created" 
+              <StatCard
+                label="Created"
                 value={stats?.total || user?.tasksCreated || 0}
-                icon={Target} 
+                icon={Target}
                 color="text-[#EEA175]"
                 bg="bg-[#EEA175]/10"
                 delay={100}
                 mounted={mounted}
               />
-              <StatCard 
-                label="Completed" 
+              <StatCard
+                label="Completed"
                 value={stats?.completed || user?.tasksCompleted || 0}
-                icon={CheckCircle} 
+                icon={CheckCircle}
                 color="text-green-500"
                 bg="bg-green-500/10"
                 delay={200}
                 mounted={mounted}
               />
-              <StatCard 
-                label="In Progress" 
+              <StatCard
+                label="In Progress"
                 value={stats?.inProgress || 0}
-                icon={Clock} 
+                icon={Clock}
                 color="text-blue-500"
                 bg="bg-blue-500/10"
                 delay={300}
@@ -295,7 +295,7 @@ const ProfilePage = () => {
                   }}
                 />
               </div>
-              
+
               <div className="flex justify-between text-xs text-[#2B1B17]/40">
                 <span>Beginner</span>
                 <span className="hidden sm:inline">Score = completion rate × 0.7 + task volume × 0.3</span>
@@ -329,7 +329,7 @@ const ProfilePage = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <p className="text-sm text-[#2B1B17]/50">
                   <span className="font-semibold text-[#2B1B17]">{stats.completed}</span> of{' '}
                   <span className="font-semibold text-[#2B1B17]">{stats.total}</span> tasks completed
@@ -342,8 +342,8 @@ const ProfilePage = () => {
               <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute top-[-50%] right-[-20%] w-[300px] h-[300px] bg-[#FC703C]/20 rounded-full blur-[80px] animate-pulse-slow" />
               </div>
-              
-              <div className="relative z-10 flex items-center gap-4">
+
+              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-[#FC703C]/20 flex items-center justify-center border border-[#FC703C]/30">
                   <Award className="w-7 h-7 text-[#FC703C]" />
                 </div>
@@ -392,7 +392,7 @@ const ProfilePage = () => {
 };
 
 const StatCard = ({ label, value, suffix, icon, color, bg, delay, mounted }) => (
-  <div 
+  <div
     className={`bg-white rounded-2xl p-5 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
     style={{ transitionDelay: `${delay}ms` }}
   >

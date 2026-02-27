@@ -118,7 +118,7 @@ const TasksPage = () => {
 
   return (
     <div className="min-h-screen bg-[#f8f7f2] bpmf-huninn-regular">
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen overflow-hidden overflow-x-hidden">
         <Sidebar />
 
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -126,17 +126,17 @@ const TasksPage = () => {
 
           <main className="flex-1 overflow-y-auto">
             {/* GSAP-Style Hero Section */}
-            <section ref={heroRef} className="relative bg-[#2B1B17] pt-20 pb-24 px-4 sm:px-6 overflow-hidden">
+            <section ref={heroRef} className="relative bg-[#2B1B17] pt-16 sm:pt-20 pb-24 px-4 sm:px-6 overflow-hidden">
               {/* Animated Background */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[#FC703C]/20 rounded-full blur-[120px] animate-pulse-slow" />
                 <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-[#EEA175]/15 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
-                
+
                 {/* Floating shapes */}
                 <div className="absolute top-16 left-[10%] w-10 h-10 border border-[#FC703C]/30 rotate-45 animate-float" />
                 <div className="absolute top-32 right-[15%] w-6 h-6 rounded-full bg-[#EEA175]/20 animate-float-slow" />
                 <div className="absolute bottom-16 left-[20%] w-12 h-12 border border-white/10 rounded-full animate-float" style={{ animationDelay: '1s' }} />
-                
+
                 {/* Grid overlay */}
                 <div className="absolute inset-0 opacity-[0.02]" style={{
                   backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
@@ -150,25 +150,25 @@ const TasksPage = () => {
                 <div className="flex items-center gap-3 mb-6">
                   <div className="relative w-12 h-12">
                     <svg viewBox="0 0 100 100" className="w-full h-full animate-spin-slow">
-                      <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C"/>
-                      <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175"/>
-                      <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#f8f7f2"/>
-                      <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C"/>
+                      <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C" />
+                      <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175" />
+                      <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#f8f7f2" />
+                      <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C" />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-2.5 h-2.5 bg-[#2B1B17] rounded-full" />
                     </div>
                   </div>
-                  <span className="text-white/40 text-3xl uppercase tracking-widest">{`{ Tasks }`}</span>
+                  <span className="text-white/40 text-xl sm:text-3xl uppercase tracking-widest">{`{ Tasks }`}</span>
                 </div>
 
                 {/* Giant Typography */}
                 <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
                   <div>
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight">
+                    <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight">
                       Manage your
                     </h1>
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.9] tracking-tight">
+                    <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.9] tracking-tight">
                       <span className="text-[#FC703C]">priorities</span>
                     </h1>
                   </div>
@@ -197,9 +197,9 @@ const TasksPage = () => {
             {/* Stats Cards - Overlapping */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-10 relative z-20">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatCard 
-                  label="Total Tasks" 
-                  value={stats.total} 
+                <StatCard
+                  label="Total Tasks"
+                  value={stats.total}
                   icon={Target}
                   color="bg-[#2B1B17]"
                   delay={0}
@@ -260,18 +260,16 @@ const TasksPage = () => {
                         <button
                           key={status.id}
                           onClick={() => setFilterStatus(status.id)}
-                          className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all shadow-[2px_2px_0_#452215] hover:shadow-[3px_3px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 ${
-                            isActive
-                              ? 'bg-[#FC703C] text-white'
-                              : 'bg-[#f8f7f2] text-[#2B1B17]/70 hover:bg-white'
-                          }`}
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all shadow-[2px_2px_0_#452215] hover:shadow-[3px_3px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-0.5 active:translate-y-0.5 ${isActive
+                            ? 'bg-[#FC703C] text-white'
+                            : 'bg-[#f8f7f2] text-[#2B1B17]/70 hover:bg-white'
+                            }`}
                         >
                           <Icon size={14} />
                           {status.label}
                           {status.id !== 'all' && (
-                            <span className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${
-                              isActive ? 'bg-white/20' : 'bg-[#2B1B17]/10 text-[#2B1B17]/60'
-                            }`}
+                            <span className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-white/20' : 'bg-[#2B1B17]/10 text-[#2B1B17]/60'
+                              }`}
                             >
                               {statusCounts[status.id] || 0}
                             </span>
@@ -303,22 +301,20 @@ const TasksPage = () => {
                     <div className="flex items-center bg-[#f8f7f2] rounded-xl p-1 shadow-[2px_2px_0_#452215]">
                       <button
                         onClick={() => setViewMode('list')}
-                        className={`p-2.5 rounded-lg transition-all ${
-                          viewMode === 'list' 
-                            ? 'bg-white text-[#FC703C] shadow-sm' 
-                            : 'text-[#2B1B17]/40 hover:text-[#2B1B17]'
-                        }`}
+                        className={`p-2.5 rounded-lg transition-all ${viewMode === 'list'
+                          ? 'bg-white text-[#FC703C] shadow-sm'
+                          : 'text-[#2B1B17]/40 hover:text-[#2B1B17]'
+                          }`}
                         aria-label="List view"
                       >
                         <List size={18} />
                       </button>
                       <button
                         onClick={() => setViewMode('grid')}
-                        className={`p-2.5 rounded-lg transition-all ${
-                          viewMode === 'grid' 
-                            ? 'bg-white text-[#FC703C] shadow-sm' 
-                            : 'text-[#2B1B17]/40 hover:text-[#2B1B17]'
-                        }`}
+                        className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid'
+                          ? 'bg-white text-[#FC703C] shadow-sm'
+                          : 'text-[#2B1B17]/40 hover:text-[#2B1B17]'
+                          }`}
                         aria-label="Grid view"
                       >
                         <LayoutGrid size={18} />
@@ -343,7 +339,7 @@ const TasksPage = () => {
                 ) : filtered.length > 0 ? (
                   <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
                     {filtered.map((task, index) => (
-                      <div 
+                      <div
                         key={task._id}
                         className={`transition-all duration-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
                         style={{ transitionDelay: `${index * 50}ms` }}
@@ -435,7 +431,7 @@ const TasksPage = () => {
 };
 
 const StatCard = ({ label, value, icon, color, suffix, alert, delay, mounted }) => (
-  <div 
+  <div
     className={`bg-white rounded-2xl p-5 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
     style={{ transitionDelay: `${delay}ms` }}
   >

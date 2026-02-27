@@ -1,32 +1,41 @@
 import { Link } from 'react-router-dom';
-import { 
-  Zap, Target, BarChart2, GitBranch, ArrowRight, 
-  CheckCircle, Github, Twitter, Linkedin, Clock, 
-  Calendar, TrendingUp, Shield 
+import {
+  Zap, Target, BarChart2, GitBranch, ArrowRight,
+  CheckCircle, Github, Twitter, Linkedin, Clock,
+  Calendar, TrendingUp, Shield
 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 const LandingPage = () => {
   const heroRef = useRef(null);
-  
+
   useEffect(() => {
-    // Scroll-triggered parallax effect for hero elements
+    // Scroll-triggered parallax effect for hero elements (rAF-throttled, desktop only)
+    let rafId = null;
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const hero = heroRef.current;
-      if (!hero) return;
-      
-      const title = hero.querySelector('.hero-title');
-      const tagline = hero.querySelector('.hero-tagline');
-      const visual = hero.querySelector('.hero-visual');
-      
-      if (title) title.style.transform = `translateY(${scrollY * 0.3}px)`;
-      if (tagline) tagline.style.transform = `translateY(${scrollY * 0.2}px)`;
-      if (visual) visual.style.transform = `translateY(${scrollY * -0.1}px)`;
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (window.innerWidth < 768) return; // Skip parallax on mobile
+        const scrollY = window.scrollY;
+        const hero = heroRef.current;
+        if (!hero) return;
+
+        const title = hero.querySelector('.hero-title');
+        const tagline = hero.querySelector('.hero-tagline');
+        const visual = hero.querySelector('.hero-visual');
+
+        if (title) title.style.transform = `translateY(${scrollY * 0.3}px)`;
+        if (tagline) tagline.style.transform = `translateY(${scrollY * 0.2}px)`;
+        if (visual) visual.style.transform = `translateY(${scrollY * -0.1}px)`;
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const features = [
@@ -61,25 +70,25 @@ const LandingPage = () => {
   ];
 
   const tasks = [
-    { 
-      priority: 98, 
-      title: "Launch Marketing Site", 
+    {
+      priority: 98,
+      title: "Launch Marketing Site",
       desc: "Critical path item blocking all progress",
       deadline: "Today",
       time: "4h",
       tags: ["Critical", "Design"]
     },
-    { 
-      priority: 84, 
-      title: "Review Pull Requests", 
+    {
+      priority: 84,
+      title: "Review Pull Requests",
       desc: "3 pending reviews from team",
       deadline: "Tomorrow",
       time: "2h",
       tags: ["High", "Dev"]
     },
-    { 
-      priority: 67, 
-      title: "Weekly Sync Prep", 
+    {
+      priority: 67,
+      title: "Weekly Sync Prep",
       desc: "Update slide deck and metrics",
       deadline: "Wed",
       time: "1h",
@@ -91,7 +100,7 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#f8f7f2] bpmf-huninn-regular">
-      
+
       {/* Floating Navigation */}
       <nav className="top-0 left-0 right-0 z-50 px-6 pt-6">
         <div className="min-w-full mx-auto">
@@ -113,7 +122,7 @@ const LandingPage = () => {
             </Link>
 
             {/* Nav Links */}
-          
+
 
             {/* Auth Buttons */}
             <div className="flex items-center gap-3">
@@ -138,24 +147,24 @@ const LandingPage = () => {
 
       {/* Hero Section - GSAP Style */}
       <section ref={heroRef} className="min-h-screen pt-32 pb-20 px-6 flex flex-col justify-center relative overflow-hidden">
-        
+
         {/* Background decorative elements */}
         <div className="absolute top-1/4 right-0 w-96 h-96 bg-[#EEA175]/20 rounded-full blur-3xl animate-pulse-slow" />
         <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-[#FC703C]/10 rounded-full blur-2xl" />
-        
+
         <div className="max-w-7xl mx-auto w-full relative z-10">
-          
-          
+
+
           {/* Main Hero Content - GSAP Style Typography */}
           <div className="relative mb-16">
             {/* Pinwheel Logo Mark */}
             <div className="absolute -top-4 left-0 md:left-8">
               <div className="w-16 h-16 md:w-24 md:h-24 relative">
                 <svg viewBox="0 0 100 100" className="w-full h-full animate-spin-slow">
-                  <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C"/>
-                  <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175"/>
-                  <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#2B1B17"/>
-                  <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C"/>
+                  <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C" />
+                  <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175" />
+                  <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#2B1B17" />
+                  <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C" />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-3 h-3 bg-[#2B1B17] rounded-full" />
@@ -176,19 +185,19 @@ const LandingPage = () => {
             {/* Animated squiggle decoration */}
             <div className="absolute right-4 md:right-20 top-1/2 w-16 md:w-24 h-32 md:h-48">
               <svg viewBox="0 0 60 120" className="w-full h-full">
-                <path 
-                  d="M30 0 Q50 30 30 60 Q10 90 30 120" 
-                  fill="none" 
-                  stroke="#EEA175" 
-                  strokeWidth="8" 
+                <path
+                  d="M30 0 Q50 30 30 60 Q10 90 30 120"
+                  fill="none"
+                  stroke="#EEA175"
+                  strokeWidth="8"
                   strokeLinecap="round"
                   className="animate-draw"
                 />
-                <path 
-                  d="M30 0 Q50 30 30 60 Q10 90 30 120" 
-                  fill="none" 
-                  stroke="#FC703C" 
-                  strokeWidth="4" 
+                <path
+                  d="M30 0 Q50 30 30 60 Q10 90 30 120"
+                  fill="none"
+                  stroke="#FC703C"
+                  strokeWidth="4"
                   strokeLinecap="round"
                   className="animate-draw"
                   style={{ animationDelay: '0.2s' }}
@@ -259,7 +268,7 @@ const LandingPage = () => {
           </div>
 
           {/* Floating Cards Animation */}
-          <div className="relative h-[400px] md:h-[500px]">
+          <div className="relative h-[350px] sm:h-[400px] md:h-[500px]">
             <div className="absolute top-0 left-0 md:left-20 animate-float">
               <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100 max-w-xs">
                 <div className="flex items-center gap-3 mb-3">
@@ -377,7 +386,7 @@ const LandingPage = () => {
       <section className="py-24 px-6 bg-[#f8f7f2]">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            
+
             {/* Left Content */}
             <div className="space-y-8">
               <h2 className="text-5xl lg:text-6xl font-bold text-[#2B1B17] leading-[1.05] tracking-tight chillax-semibold">
@@ -385,11 +394,11 @@ const LandingPage = () => {
                 <br />
                 <span className="text-[#FC703C]">scientifically sorted.</span>
               </h2>
-              
+
               <p className="text-lg text-[#4A3A36] leading-relaxed max-w-lg">
                 Our Max Heap algorithm analyzes urgency, importance, and deadlines to surface what matters most—right now.
               </p>
-              
+
               <div className="flex flex-wrap items-center gap-4">
                 <Link
                   to="/register"
@@ -405,10 +414,10 @@ const LandingPage = () => {
             <div className="relative hero-visual">
               {/* Background Glow */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#EEA175]/40 via-[#FC703C]/20 to-[#2B1B17]/10 rounded-[2.5rem] blur-3xl scale-110" />
-              
+
               {/* Glass Card Container */}
               <div className="relative bg-white/70 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-2xl border border-white/60">
-                
+
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
@@ -424,7 +433,7 @@ const LandingPage = () => {
                 {/* Task Stack */}
                 <div className="space-y-3">
                   {tasks.map((task, i) => (
-                    <div 
+                    <div
                       key={i}
                       className="group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 cursor-pointer"
                     >
@@ -432,9 +441,9 @@ const LandingPage = () => {
                         <div className="flex items-center gap-3">
                           <span className={`
                             text-xs font-bold px-2.5 py-1 rounded-full
-                            ${task.priority >= 90 ? 'bg-red-50 text-red-600' : 
-                              task.priority >= 75 ? 'bg-orange-50 text-orange-600' : 
-                              'bg-yellow-50 text-yellow-600'}
+                            ${task.priority >= 90 ? 'bg-red-50 text-red-600' :
+                              task.priority >= 75 ? 'bg-orange-50 text-orange-600' :
+                                'bg-yellow-50 text-yellow-600'}
                           `}>
                             {task.priority}
                           </span>
@@ -447,12 +456,12 @@ const LandingPage = () => {
                           {task.time}
                         </div>
                       </div>
-                      
+
                       <h4 className="font-semibold text-[#2B1B17] mb-1 group-hover:text-[#FC703C] transition-colors">
                         {task.title}
                       </h4>
                       <p className="text-sm text-gray-500 mb-3">{task.desc}</p>
-                      
+
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         <Calendar size={12} />
                         <span>Due {task.deadline}</span>
@@ -474,7 +483,7 @@ const LandingPage = () => {
       {/* Dark Section - Features Grid */}
       <section className="bg-[#2B1B17] py-24 px-6">
         <div className="max-w-7xl mx-auto">
-          
+
           {/* Section Header */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16">
             <div className="max-w-2xl">
@@ -487,8 +496,8 @@ const LandingPage = () => {
                 Built on computer science fundamentals for maximum efficiency.
               </p>
             </div>
-            <Link 
-              to="/science" 
+            <Link
+              to="/science"
               className="text-white/70 hover:text-white font-medium flex items-center gap-2 hover:gap-3 transition-all whitespace-nowrap"
             >
               Explore the Science →
@@ -551,7 +560,7 @@ const LandingPage = () => {
       {/* Analytics Section */}
       <section className="py-24 px-6 bg-[#f8f7f2]">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-          
+
           {/* Left Content */}
           <div className="order-2 lg:order-1">
             <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#EEA175]/30 text-[#2B1B17] rounded-full text-sm font-medium mb-6">
@@ -562,9 +571,9 @@ const LandingPage = () => {
             <h2 className="text-4xl lg:text-5xl font-bold text-[#2B1B17] leading-tight mb-6">
               Understand your productivity patterns.
             </h2>
-            
+
             <p className="text-lg text-gray-600 leading-relaxed mb-8">
-              Visualize your focus trends, identify peak performance hours, and 
+              Visualize your focus trends, identify peak performance hours, and
               optimize your schedule with data-driven insights.
             </p>
 
@@ -583,7 +592,7 @@ const LandingPage = () => {
                 </li>
               ))}
             </ul>
-            
+
             <Link
               to="/dashboard"
               className="group inline-flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-white rounded-full font-medium hover:bg-[#E85C2A] transition-all hover:scale-105"
@@ -603,7 +612,7 @@ const LandingPage = () => {
                   <h4 className="font-semibold text-[#2B1B17]">Weekly Focus Score</h4>
                   <span className="text-sm text-green-600 font-medium">+12%</span>
                 </div>
-                
+
                 {/* Chart Bars */}
                 <div className="flex items-end justify-between h-48 gap-3">
                   {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
@@ -651,18 +660,18 @@ const LandingPage = () => {
             <Shield size={16} />
             Distraction-Free Environment
           </div>
-          
+
           <h2 className="text-4xl lg:text-6xl font-bold text-white leading-tight mb-8">
             Deep work requires
             <br />
             <span className="text-[#EEA175]">deep focus.</span>
           </h2>
-          
+
           <p className="text-xl text-white/70 max-w-2xl mx-auto mb-12 leading-relaxed">
-            Activate Focus Mode to eliminate notifications and guide you through 
+            Activate Focus Mode to eliminate notifications and guide you through
             your highest-priority tasks one at a time.
           </p>
-          
+
           <button className="group inline-flex items-center gap-3 px-10 py-5 bg-white text-[#2B1B17] rounded-full font-semibold text-lg hover:bg-[#f8f7f2] transition-all hover:scale-105 shadow-2xl">
             <Zap className="w-5 h-5" />
             Enter Focus Mode
@@ -676,8 +685,8 @@ const LandingPage = () => {
           <h2 className="text-4xl lg:text-5xl font-bold text-[#2B1B17] leading-tight mb-6">
             Ready to maximize your focus?
           </h2>
-          
-          
+
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/register"
@@ -694,23 +703,23 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="bg-[#2B1B17] text-white py-20 px-6">
         <div className="max-w-7xl mx-auto">
-          
+
           {/* Top Section */}
           <div className="grid lg:grid-cols-2 gap-16 pb-16 border-b border-white/10">
-            
+
             {/* Brand & Newsletter */}
             <div className="space-y-6">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-2xl">PrioSync</span>
               </div>
-              
+
               <p className="text-white/60 max-w-md leading-relaxed">
-                Pioneering intelligent task management through algorithmic 
+                Pioneering intelligent task management through algorithmic
                 prioritization. Built for humans who want to achieve more.
               </p>
-              
-              <div className="flex gap-3 max-w-md">
-                <input 
+
+              <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+                <input
                   type="email"
                   placeholder="Enter your email"
                   className="flex-1 px-5 py-3 bg-white/10 border border-white/20 rounded-full text-white placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-colors"

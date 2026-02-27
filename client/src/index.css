@@ -143,6 +143,13 @@ html,
 body,
 #root {
   min-height: 100%;
+  overflow-x: hidden;
+}
+
+/* GPU compositing hint for heavy animations */
+.gpu-layer {
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 

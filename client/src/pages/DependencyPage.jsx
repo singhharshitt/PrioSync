@@ -1,6 +1,6 @@
 import { createElement, useEffect, useState, useRef } from 'react';
-import { 
-  GitBranch, RefreshCw, Zap, Target, 
+import {
+  GitBranch, RefreshCw, Zap, Target,
   ArrowRight, Sparkles, Layers, Calculator,
   CheckCircle2, Clock, AlertCircle
 } from 'lucide-react';
@@ -30,23 +30,23 @@ const DependencyPage = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular">
       <Sidebar />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* <Navbar title="Dependencies" /> */}
-        
+
         <main className="flex-1 overflow-y-auto">
           {/* GSAP-Style Hero Section */}
-          <section ref={heroRef} className="relative bg-[#2B1B17] pt-20 pb-28 px-4 sm:px-6 overflow-hidden">
+          <section ref={heroRef} className="relative bg-[#2B1B17] pt-16 sm:pt-20 pb-28 px-4 sm:px-6 overflow-hidden">
             {/* Animated Background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-[#FC703C]/20 rounded-full blur-[120px] animate-pulse-slow" />
               <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-[#EEA175]/15 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
-              
+
               {/* Floating shapes */}
               <div className="absolute top-16 left-[10%] w-10 h-10 border border-[#FC703C]/30 rotate-45 animate-float" />
               <div className="absolute top-32 right-[15%] w-6 h-6 rounded-full bg-[#EEA175]/20 animate-float-slow" />
               <div className="absolute bottom-20 left-[20%] w-12 h-12 border border-white/10 rounded-full animate-float" style={{ animationDelay: '1s' }} />
-              
+
               {/* Network-like decorative lines */}
               <svg className="absolute top-[20%] right-[20%] w-32 h-32 text-[#FC703C]/10 animate-pulse" viewBox="0 0 100 100">
                 <circle cx="20" cy="20" r="4" fill="currentColor" />
@@ -56,7 +56,7 @@ const DependencyPage = () => {
                 <line x1="80" y1="30" x2="50" y2="80" stroke="currentColor" strokeWidth="1" />
                 <line x1="50" y1="80" x2="20" y2="20" stroke="currentColor" strokeWidth="1" />
               </svg>
-              
+
               {/* Grid overlay */}
               <div className="absolute inset-0 opacity-[0.02]" style={{
                 backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
@@ -70,31 +70,31 @@ const DependencyPage = () => {
               <div className="flex items-center gap-3 mb-6">
                 <div className="relative w-12 h-12">
                   <svg viewBox="0 0 100 100" className="w-full h-full animate-spin-slow">
-                    <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C"/>
-                    <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175"/>
-                    <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#f8f7f2"/>
-                    <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C"/>
+                    <path d="M50 0C50 0 65 25 50 50C35 25 50 0 50 0Z" fill="#FC703C" />
+                    <path d="M100 50C100 50 75 65 50 50C75 35 100 50 100 50Z" fill="#EEA175" />
+                    <path d="M50 100C50 100 35 75 50 50C65 75 50 100 50 100Z" fill="#f8f7f2" />
+                    <path d="M0 50C0 50 25 35 50 50C25 65 0 50 0 50Z" fill="#FC703C" />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-2.5 h-2.5 bg-[#2B1B17] rounded-full" />
                   </div>
                 </div>
-                <span className="text-white/40 text-3xl uppercase tracking-widest">{`{ Dependencies }`}</span>
+                <span className="text-white/40 text-xl sm:text-3xl uppercase tracking-widest">{`{ Dependencies }`}</span>
               </div>
 
               {/* Giant Typography */}
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
                 <div>
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight">
                     Visualize
                   </h1>
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.9] tracking-tight">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[0.9] tracking-tight">
                     <span className="text-[#FC703C]">Connections</span>
                   </h1>
                 </div>
 
                 {/* Stats Pills */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="bg-white/10 backdrop-blur-sm rounded-full px-5 py-3 border border-white/10">
                     <span className="text-2xl font-bold text-white">{nodeCount}</span>
                     <span className="text-white/50 text-sm ml-2">Tasks</span>
@@ -110,8 +110,8 @@ const DependencyPage = () => {
               <div className="flex items-start gap-3 mt-6 max-w-2xl">
                 <span className="text-3xl text-[#FC703C]/40 font-light">{`{`}</span>
                 <p className="text-base text-white/60 leading-relaxed pt-1">
-                  Directed Acyclic Graph (DAG) visualization of task dependencies. 
-                  Our algorithm detects cycles, ranks priorities, and schedules tasks 
+                  Directed Acyclic Graph (DAG) visualization of task dependencies.
+                  Our algorithm detects cycles, ranks priorities, and schedules tasks
                   using topological ordering.
                 </p>
                 <span className="text-3xl text-[#FC703C]/40 font-light">{`}`}</span>
@@ -130,7 +130,7 @@ const DependencyPage = () => {
 
           {/* Main Content */}
           <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-12 relative z-20 pb-12 space-y-6">
-            
+
             {/* Graph Card */}
             <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215]">
               <div className="flex items-center justify-between mb-6">
@@ -191,12 +191,12 @@ const DependencyPage = () => {
                   delay: 200
                 }
               ].map(({ step, title, desc, icon, color, delay }) => (
-                <div 
+                <div
                   key={step}
                   className={`bg-white rounded-2xl p-6 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-1 transition-all duration-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
                   style={{ transitionDelay: `${delay}ms` }}
                 >
-                  <div 
+                  <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg mb-4 shadow-lg"
                     style={{ background: color }}
                   >
@@ -231,7 +231,7 @@ const DependencyPage = () => {
 
                 {/* Formula Display */}
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-6">
-                  <code className="text-lg md:text-xl text-[#FC703C] font-mono block text-center">
+                  <code className="text-xs sm:text-sm md:text-lg lg:text-xl text-[#FC703C] font-mono block text-center overflow-x-auto whitespace-nowrap">
                     Score = (Urgency × 0.30 + Importance × 0.25 + Deadline × 0.25 + Ease × 0.20) × 20
                   </code>
                 </div>
@@ -253,7 +253,7 @@ const DependencyPage = () => {
                         <span className="text-xl font-bold text-white">{weight}</span>
                       </div>
                       <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                        <div 
+                        <div
                           className="h-full rounded-full transition-all duration-1000"
                           style={{ width: weight, background: color }}
                         />

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { 
-  Calendar, 
-  Trash2, 
-  Edit2, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  Calendar,
+  Trash2,
+  Edit2,
+  ChevronDown,
+  ChevronUp,
   Link as LinkIcon,
   Zap,
   Clock,
@@ -14,26 +14,26 @@ import {
 import PriorityBadge from './PriorityBadge.jsx';
 
 const statusConfig = {
-  pending: { 
-    color: '#EAB308', 
+  pending: {
+    color: '#EAB308',
     bg: 'bg-yellow-500/10',
     border: 'border-yellow-500/20',
     label: 'PENDING'
   },
-  'in-progress': { 
-    color: '#FC703C', 
+  'in-progress': {
+    color: '#FC703C',
     bg: 'bg-[#FC703C]/10',
     border: 'border-[#FC703C]/20',
     label: 'IN PROGRESS'
   },
-  completed: { 
-    color: '#22C55E', 
+  completed: {
+    color: '#22C55E',
     bg: 'bg-green-500/10',
     border: 'border-green-500/20',
     label: 'COMPLETED'
   },
-  cancelled: { 
-    color: '#6B7280', 
+  cancelled: {
+    color: '#6B7280',
     bg: 'bg-gray-500/10',
     border: 'border-gray-500/20',
     label: 'CANCELLED'
@@ -101,7 +101,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
     >
       {/* Animated Background Texture */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none rounded-2xl"
-           style={{ backgroundImage: 'radial-gradient(#FC703C 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+        style={{ backgroundImage: 'radial-gradient(#FC703C 1px, transparent 1px)', backgroundSize: '20px 20px' }}
       />
 
       {/* Top Energy Bar */}
@@ -117,7 +117,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
             {/* Badges Row */}
             <div className="flex items-center gap-2 flex-wrap mb-3">
               <PriorityBadge score={task.priorityScore} tier={task.priorityTier} />
-              
+
               {/* Status Badge with Pinwheel */}
               <div className={`
                 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider
@@ -160,7 +160,8 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
           <div className={`
             flex items-center gap-1 shrink-0 
             transition-all duration-300
-            ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
+            opacity-100 translate-x-0 md:opacity-0 md:translate-x-2
+            ${isHovered ? 'md:opacity-100 md:translate-x-0' : ''}
           `}>
             <button
               onClick={() => setExpanded((v) => !v)}
@@ -188,7 +189,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
 
         {/* Metadata Bar */}
         <div className={`
-          flex items-center gap-4 mt-4 p-3 rounded-xl bg-[#231612] border border-[#FC703C]/5
+          flex items-center gap-2 sm:gap-4 flex-wrap mt-4 p-3 rounded-xl bg-[#231612] border border-[#FC703C]/5
           transition-all duration-300 ${isHovered ? 'border-[#FC703C]/20' : ''}
         `}>
           {/* Date */}
@@ -218,14 +219,14 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
           )}
 
           {/* UID Scores */}
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 mt-2 sm:mt-0 sm:ml-auto">
             {[
               { label: 'U', value: task.urgency, color: '#EF4444' },
               { label: 'I', value: task.importance, color: '#3B82F6' },
               { label: 'D', value: task.difficulty, color: '#8B5CF6' },
             ].map(({ label, value, color }) => (
-              <div 
-                key={label} 
+              <div
+                key={label}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#2B1B17] border border-[#FDF8F0]/5"
                 title={`${label === 'U' ? 'Urgency' : label === 'I' ? 'Importance' : 'Difficulty'}: ${value}/10`}
               >
