@@ -81,16 +81,16 @@ class DAG {
     /**
      * Topological sort — returns tasks in completion order
      * Tasks with no dependencies come first (Kahn's algorithm)
+     *
+     * Edge convention: adjacencyList `from -> deps` means "from depends on deps".
+     * So in-degree(from) = number of uncompleted dependencies.
+     * Returns nodes with all deps satisfied first; on cycle returns the
+     * acyclic prefix (callers must treat length < node count as cyclic).
      */
     topologicalSort() {
         const inDegree = new Map();
-        for (const [node] of this.adjacencyList) {
-            inDegree.set(node, 0);
-        }
-        for (const [, deps] of this.adjacencyList) {
-            for (const dep of deps) {
-                inDegree.set(dep, (inDegree.get(dep) || 0) + 1);
-            }
+        for (const [node, deps] of this.adjacencyList) {
+            inDegree.set(node, deps.size);
         }
 
         const queue = [];
@@ -103,13 +103,20 @@ class DAG {
             const node = queue.shift();
             sorted.push(node);
             for (const dependent of this.reverseList.get(node) || []) {
-                const newDeg = (inDegree.get(dependent) || 0) - 1;
+                const newDeg = (inDegree.get(dependent) ?? 0) - 1;
                 inDegree.set(dependent, newDeg);
                 if (newDeg === 0) queue.push(dependent);
             }
         }
 
         return sorted;
+    }
+
+    /**
+     * True when the graph contains a cycle (topo sort could not order all nodes).
+     */
+    hasCycle() {
+        return this.topologicalSort().length !== this.adjacencyList.size;
     }
 
     /**

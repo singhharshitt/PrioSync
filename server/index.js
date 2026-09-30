@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import connectDB, { isDatabaseReady } from './config/db.js';
+import { connectPostgres, isPostgresReady } from './db/pgClient.js';
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
@@ -66,10 +67,13 @@ app.use('/api/auth', requireDatabaseConnection, authRoutes);
 app.use('/api/tasks', requireDatabaseConnection, taskRoutes);
 
 app.get('/api/health', (req, res) => {
+  const mongo = isDatabaseReady();
+  const postgres = isPostgresReady();
   res.json({
-    success: isDatabaseReady(),
-    message: isDatabaseReady() ? 'PrioSync API is running' : 'PrioSync API is running without database',
-    databaseConnected: isDatabaseReady(),
+    success: mongo,
+    message: mongo ? 'PrioSync API is running' : 'PrioSync API is running without database',
+    databaseConnected: mongo,
+    postgresConnected: postgres,
     timestamp: new Date(),
   });
 });
@@ -93,12 +97,23 @@ const connectDatabaseWithRetry = async () => {
   }
 };
 
+// Postgres runs alongside Mongo during migration (dual-DB phase).
+// Mongo remains primary until the repository swap is verified.
+const connectPostgresBestEffort = async () => {
+  try {
+    await connectPostgres();
+  } catch (error) {
+    console.error(`Postgres connection error: ${error.message}`);
+  }
+};
+
 const startServer = () => {
   try {
     app.listen(PORT, () => {
       console.log(`PrioSync Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       connectDatabaseWithRetry();
+      connectPostgresBestEffort();
     });
   } catch (error) {
     console.error(`Failed to start server: ${error.message}`);
