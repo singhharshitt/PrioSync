@@ -8,6 +8,8 @@ const AuthPage = lazy(() => import('./pages/AuthPage.jsx'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'));
 const TasksPage = lazy(() => import('./pages/TasksPage.jsx'));
 const DependencyPage = lazy(() => import('./pages/DependencyPage.jsx'));
+const PlannerPage = lazy(() => import('./pages/PlannerPage.jsx'));
+const FocusPage = lazy(() => import('./pages/FocusPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage.jsx'));
 
@@ -131,6 +133,24 @@ const AppRoutes = () => {
           element={(
             <ProtectedRoute>
               <DependencyPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/planner"
+          element={(
+            <ProtectedRoute>
+              <PlannerPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/focus"
+          element={(
+            <ProtectedRoute>
+              <FocusPage />
             </ProtectedRoute>
           )}
         />

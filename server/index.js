@@ -8,6 +8,9 @@ import connectDB, { isDatabaseReady } from './config/db.js';
 import { connectPostgres, isPostgresReady } from './db/pgClient.js';
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
+import v2AuthRoutes from './routes/v2AuthRoutes.js';
+import v2TaskRoutes from './routes/v2TaskRoutes.js';
+import { plannerRouter, plansRouter } from './routes/v2PlannerRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -65,6 +68,22 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', requireDatabaseConnection, authRoutes);
 app.use('/api/tasks', requireDatabaseConnection, taskRoutes);
+
+// V2 (Postgres): additive, v1 untouched. Requires PG pool, not Mongo.
+const requirePostgres = (req, res, next) => {
+  if (isPostgresReady()) {
+    next();
+    return;
+  }
+  res.status(503).json({
+    success: false,
+    message: 'Postgres is temporarily unavailable. Please try again shortly.',
+  });
+};
+app.use('/api/v2/auth', requirePostgres, v2AuthRoutes);
+app.use('/api/v2/tasks', requirePostgres, v2TaskRoutes);
+app.use('/api/v2/planner', requirePostgres, plannerRouter);
+app.use('/api/v2/plans', requirePostgres, plansRouter);
 
 app.get('/api/health', (req, res) => {
   const mongo = isDatabaseReady();

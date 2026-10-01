@@ -1,12 +1,14 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, CheckSquare, GitBranch, User, LogOut, Menu, X, Zap,
+  LayoutDashboard, CheckSquare, GitBranch, User, LogOut, Menu, X, Zap, Sparkles, Timer,
 } from 'lucide-react';
 import { createElement, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/planner', label: 'Planner', icon: Sparkles },
+  { to: '/focus', label: 'Focus', icon: Timer },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
   { to: '/dependencies', label: 'Dependencies', icon: GitBranch },
   { to: '/profile', label: 'Profile', icon: User },
