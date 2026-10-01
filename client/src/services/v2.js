@@ -72,6 +72,33 @@ export const v2Planner = {
   },
 };
 
+export const v2Replans = {
+  async missed() {
+    return unwrap(httpClient.get('/v2/replans/missed', { headers: v2Headers() }));
+  },
+  async propose(payload) {
+    return unwrap(httpClient.post('/v2/replans/propose', payload, { headers: v2Headers() }));
+  },
+  async accept(payload) {
+    return unwrap(httpClient.post('/v2/replans/accept', payload, { headers: v2Headers() }));
+  },
+  async log() {
+    return unwrap(httpClient.get('/v2/replans/log', { headers: v2Headers() }));
+  },
+};
+
+export const v2Recommendations = {
+  async override(payload) {
+    return unwrap(httpClient.post('/v2/recommendations/override', payload, { headers: v2Headers() }));
+  },
+  async accept(recommendedTaskId) {
+    return unwrap(httpClient.post('/v2/recommendations/accept', { recommendedTaskId }, { headers: v2Headers() }));
+  },
+  async adherence() {
+    return unwrap(httpClient.get('/v2/recommendations/adherence', { headers: v2Headers() }));
+  },
+};
+
 export const v2Tasks = {
   async next({ minutes, energy } = {}) {
     const params = {};

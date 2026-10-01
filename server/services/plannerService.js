@@ -10,6 +10,7 @@ import { calculatePriorityScore } from '../dsa-engine/priorityEngine.js';
 import { scheduleTasksGreedy } from '../dsa-engine/scheduler.js';
 import { computePlanHealth } from '../planner/planHealth.js';
 import { presentTask } from './pgTaskService.js';
+import { bustUser } from '../cache/taskCache.js';
 
 const toEngine = (row) => ({ ...row, _id: row.id, dependencies: row.dependencies || [] });
 
@@ -161,6 +162,7 @@ export const confirmPlan = async (userId, payload) => {
         );
 
         await client.query('COMMIT');
+        await bustUser(userId);
         return {
             planId,
             goal: goalRow,

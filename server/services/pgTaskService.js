@@ -12,6 +12,7 @@ import {
     batchCalculatePriorities,
 } from '../dsa-engine/priorityEngine.js';
 import { scheduleTasksGreedy } from '../dsa-engine/scheduler.js';
+import { bustUser } from '../cache/taskCache.js';
 
 const toEngine = (row) => ({
     ...row,
@@ -113,6 +114,7 @@ export const createTask = async (userId, input) => {
             await event(client, userId, row.id, 'DEPENDENCY_ADDED', { dependsOn: row.dependencies });
         }
         await client.query('COMMIT');
+        await bustUser(userId);
         return presentTask(await Tasks.getById(userId, row.id));
     } catch (e) {
         await client.query('ROLLBACK');
@@ -177,6 +179,7 @@ export const updateTask = async (userId, taskId, fields, { expectedVersion = nul
             }
         }
         await client.query('COMMIT');
+        await bustUser(userId);
         return { row: presentTask(await Tasks.getById(userId, taskId)) };
     } catch (e) {
         await client.query('ROLLBACK');
@@ -208,6 +211,7 @@ export const deleteTask = async (userId, taskId) => {
             }
         }
         await client.query('COMMIT');
+        await bustUser(userId);
         return { deleted: true };
     } catch (e) {
         await client.query('ROLLBACK');
@@ -215,6 +219,26 @@ export const deleteTask = async (userId, taskId) => {
     } finally {
         client.release();
     }
+};
+
+/**
+ * Rescore every active task of a user (deadline pressure drifts with time).
+ * Used by the recalc background job and the manual /tasks/recalc endpoint.
+ * Returns counts; throws nothing for empty sets.
+ */
+export const rescoreUser = async (userId) => {
+    const rows = await Tasks.allForScoring(userId);
+    const completed = await Tasks.completedIds(userId);
+    let rescored = 0;
+    for (const row of rows) {
+        if (row.status !== 'pending' && row.status !== 'in-progress') continue;
+        const { score, tier } = scoreRow(row, completed);
+        if (score !== row.priority_score || tier !== row.priority_tier) {
+            await Tasks.setScore(row.id, score, tier);
+            rescored++;
+        }
+    }
+    return { checked: rows.length, rescored };
 };
 
 /** Top-N executable tasks via the greedy MaxHeap scheduler (deterministic). */

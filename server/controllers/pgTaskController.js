@@ -2,6 +2,8 @@ import { getPool } from '../db/pgClient.js';
 import * as Tasks from '../repositories/pgTasks.js';
 import * as Sessions from '../repositories/pgSessions.js';
 import * as Svc from '../services/pgTaskService.js';
+import { readThrough, bustUser } from '../cache/taskCache.js';
+import { enqueueRecalc } from '../jobs/dispatch.js';
 
 const sendErr = (res, e) => {
     if (e && e.status === 400) return res.status(400).json({ success: false, message: e.message });
@@ -98,7 +100,9 @@ export const replaceDependencies = async (req, res, next) => {
 
 export const getTopTasks = async (req, res, next) => {
     try {
-        res.json({ success: true, tasks: await Svc.getTopTasks(req.user.id, 5) });
+        const { data, cached } = await readThrough(req.user.id, 'top', () => Svc.getTopTasks(req.user.id, 5));
+        res.set('X-Cache', cached ? 'HIT' : 'MISS');
+        res.json({ success: true, tasks: data });
     } catch (e) {
         next(e);
     }
@@ -106,12 +110,25 @@ export const getTopTasks = async (req, res, next) => {
 
 export const getStats = async (req, res, next) => {
     try {
-        const stats = await Svc.getStats(req.user.id);
-        await getPool().query(`UPDATE users SET productivity_score = $2 WHERE id = $1`, [
-            req.user.id,
-            stats.productivityScore,
-        ]);
+        const { data: stats, cached } = await readThrough(req.user.id, 'stats', () => Svc.getStats(req.user.id));
+        if (!cached) {
+            await getPool().query(`UPDATE users SET productivity_score = $2 WHERE id = $1`, [
+                req.user.id,
+                stats.productivityScore,
+            ]);
+        }
+        res.set('X-Cache', cached ? 'HIT' : 'MISS');
         res.json({ success: true, stats });
+    } catch (e) {
+        next(e);
+    }
+};
+
+/** POST /api/v2/tasks/recalc — rescore drifted priorities without blocking reads. */
+export const recalc = async (req, res, next) => {
+    try {
+        const out = await enqueueRecalc(req.user.id);
+        res.json({ success: true, mode: out.queued ? 'queued' : 'inline', ...(out.result ? { result: out.result } : {}) });
     } catch (e) {
         next(e);
     }
@@ -203,6 +220,7 @@ export const logFocusSession = async (req, res, next) => {
         }
         const session = await Sessions.log(req.user.id, { taskId, startedAt, endedAt, durationSeconds });
         if (!session) return res.status(404).json({ success: false, message: 'Task not found.' });
+        await bustUser(req.user.id); // weekly focus minutes feed stats
         res.status(201).json({ success: true, session });
     } catch (e) {
         next(e);

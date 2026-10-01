@@ -6,11 +6,14 @@ import cors from 'cors';
 import morgan from 'morgan';
 import connectDB, { isDatabaseReady } from './config/db.js';
 import { connectPostgres, isPostgresReady } from './db/pgClient.js';
+import { connectRedis, isRedisReady } from './cache/redisClient.js';
+import { startWorkers } from './jobs/workers.js';
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import v2AuthRoutes from './routes/v2AuthRoutes.js';
 import v2TaskRoutes from './routes/v2TaskRoutes.js';
 import { plannerRouter, plansRouter } from './routes/v2PlannerRoutes.js';
+import { replansRouter, recommendationsRouter } from './routes/v2ReplanRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -84,6 +87,8 @@ app.use('/api/v2/auth', requirePostgres, v2AuthRoutes);
 app.use('/api/v2/tasks', requirePostgres, v2TaskRoutes);
 app.use('/api/v2/planner', requirePostgres, plannerRouter);
 app.use('/api/v2/plans', requirePostgres, plansRouter);
+app.use('/api/v2/replans', requirePostgres, replansRouter);
+app.use('/api/v2/recommendations', requirePostgres, recommendationsRouter);
 
 app.get('/api/health', (req, res) => {
   const mongo = isDatabaseReady();
@@ -93,6 +98,7 @@ app.get('/api/health', (req, res) => {
     message: mongo ? 'PrioSync API is running' : 'PrioSync API is running without database',
     databaseConnected: mongo,
     postgresConnected: postgres,
+    redisConnected: isRedisReady(),
     timestamp: new Date(),
   });
 });
@@ -133,6 +139,7 @@ const startServer = () => {
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       connectDatabaseWithRetry();
       connectPostgresBestEffort();
+      connectRedis().then(() => startWorkers()).catch(() => {});
     });
   } catch (error) {
     console.error(`Failed to start server: ${error.message}`);

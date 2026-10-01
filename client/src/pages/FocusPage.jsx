@@ -5,7 +5,116 @@ import {
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar.jsx';
 import V2SessionGate from '../components/V2SessionGate.jsx';
-import { v2Tasks } from '../services/v2.js';
+import { v2Tasks, v2Replans, v2Recommendations } from '../services/v2.js';
+import { CalendarClock } from 'lucide-react';
+
+const toLocalInput = (iso) => {
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+const ReplanBanner = ({ onApplied }) => {
+  const [missed, setMissed] = useState(null);
+  const [proposal, setProposal] = useState(null);
+  const [moves, setMoves] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    v2Replans.missed().then((d) => setMissed(d.missed || [])).catch(() => setMissed([]));
+  }, []);
+
+  if (!missed || missed.length === 0) return null;
+
+  const suggest = async () => {
+    setBusy(true);
+    try {
+      const data = await v2Replans.propose({ taskIds: missed.map((t) => t.id) });
+      setProposal(data);
+      setMoves(data.moves || []);
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Could not build a proposal.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const acceptProposal = async () => {
+    setBusy(true);
+    try {
+      const data = await v2Replans.accept({
+        moves: moves.map((m) => ({ taskId: m.taskId, newDeadline: new Date(m.newDeadline).toISOString() })),
+        reason: 'accepted from Focus replan banner',
+      });
+      toast.success(`Plan updated — ${data.applied.length} task${data.applied.length === 1 ? '' : 's'} moved.`);
+      setMissed([]);
+      setProposal(null);
+      onApplied?.();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Could not apply the plan.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-3xl p-6 text-sm">
+      <p className="font-black text-yellow-200 flex items-center gap-2 text-base">
+        <CalendarClock size={18} /> Plan updated? You missed {missed.length} task{missed.length === 1 ? '' : 's'}
+      </p>
+      <ul className="mt-2 space-y-1 text-yellow-100/80">
+        {missed.map((t) => (
+          <li key={t.id}>• {t.title} <span className="opacity-60">(was {new Date(t.deadline).toLocaleDateString()})</span></li>
+        ))}
+      </ul>
+      {!proposal ? (
+        <button
+          onClick={suggest}
+          disabled={busy}
+          className="mt-4 px-6 py-2.5 bg-yellow-500 text-[#2B1B17] font-black rounded-full hover:bg-yellow-400 transition-all disabled:opacity-60"
+        >
+          {busy ? 'Finding slots…' : 'Suggest new slots'}
+        </button>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {moves.map((m, i) => (
+            <div key={m.taskId} className="flex flex-wrap items-center gap-3 bg-[#2B1B17]/60 rounded-xl px-4 py-2.5">
+              <span className="flex-1 font-bold text-white min-w-[140px]">{m.title}</span>
+              <span className="text-yellow-100/60 text-xs">+{m.estimatedMinutes} min on {m.day}</span>
+              <input
+                type="datetime-local"
+                value={toLocalInput(m.newDeadline)}
+                onChange={(e) => setMoves((ms) => ms.map((x, j) => (j === i ? { ...x, newDeadline: new Date(e.target.value).toISOString() } : x)))}
+                className="px-2 py-1.5 rounded-lg bg-[#231612] border border-white/10 text-white text-xs outline-none"
+              />
+            </div>
+          ))}
+          {proposal.impact?.length > 0 && (
+            <p className="text-yellow-100/60 text-xs">
+              Impact: {proposal.impact.map((x) => `${x.day} +${x.addedMinutes} min`).join(' • ')}
+              {proposal.assumedCapacity ? ' (assuming 240 min/day — set availability in Planner)' : ''}
+            </p>
+          )}
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={acceptProposal}
+              disabled={busy}
+              className="px-6 py-2.5 bg-yellow-500 text-[#2B1B17] font-black rounded-full hover:bg-yellow-400 transition-all disabled:opacity-60"
+            >
+              Accept
+            </button>
+            <button
+              onClick={() => setProposal(null)}
+              className="px-6 py-2.5 bg-white/10 text-white font-bold rounded-full hover:bg-white/15 transition-all"
+            >
+              Edit later
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const card = 'bg-[#2B1B17] rounded-3xl p-6 border border-[#FC703C]/10 text-white';
 const pill = (active) =>
@@ -38,6 +147,29 @@ const FocusFlow = () => {
   const [startedAt, setStartedAt] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [overrideFor, setOverrideFor] = useState(null);
+
+  const OVERRIDE_REASONS = [
+    { value: 'more_energy', label: 'More energy for this' },
+    { value: 'not_urgent', label: 'Top pick not urgent' },
+    { value: 'prefer_first', label: 'Prefer this first' },
+    { value: 'other', label: 'Other' },
+  ];
+
+  const acceptAndStart = (task) => {
+    if (rec?.task && task.id === rec.task.id) {
+      v2Recommendations.accept(task.id).catch(() => {});
+    }
+    startFocus(task);
+  };
+
+  const overrideAndStart = (task, reason) => {
+    if (rec?.task) {
+      v2Recommendations.override({ recommendedTaskId: rec.task.id, chosenTaskId: task.id, reason }).catch(() => {});
+    }
+    setOverrideFor(null);
+    startFocus(task);
+  };
 
   useEffect(() => {
     if (!running || !startedAt) return undefined;
@@ -117,6 +249,8 @@ const FocusFlow = () => {
         </h1>
       </div>
 
+      <ReplanBanner onApplied={fetchNext} />
+
       {/* Controls */}
       <div className={card}>
         <div className="flex flex-wrap items-center gap-2">
@@ -169,7 +303,7 @@ const FocusFlow = () => {
             <div className="flex items-center justify-center gap-3 mt-6">
               {!running ? (
                 <button
-                  onClick={() => startFocus(rec.task)}
+                  onClick={() => acceptAndStart(rec.task)}
                   className="px-8 py-3 bg-[#FC703C] text-[#2B1B17] font-black rounded-full hover:bg-[#ff855c] transition-all inline-flex items-center gap-2"
                 >
                   <Play size={18} /> Start Focus
@@ -229,16 +363,31 @@ const FocusFlow = () => {
           <p className="text-xs uppercase tracking-widest text-[#FC703C] font-black mb-3">Also fits</p>
           <div className="space-y-2">
             {alternates.map((a) => (
-              <button
-                key={a.task.id}
-                onClick={() => startFocus(a.task)}
-                className="w-full text-left bg-[#231612] rounded-xl px-4 py-3 hover:border-[#FC703C]/40 border border-transparent transition-all"
-              >
-                <span className="font-bold">{a.task.title}</span>
-                <span className="text-xs text-white/40 ml-3">
-                  {a.task.estimatedMinutes} min • {a.task.priorityScore}
-                </span>
-              </button>
+              <div key={a.task.id} className="bg-[#231612] rounded-xl px-4 py-3 border border-transparent">
+                <button
+                  onClick={() => setOverrideFor(overrideFor === a.task.id ? null : a.task.id)}
+                  className="w-full text-left hover:border-[#FC703C]/40"
+                >
+                  <span className="font-bold">{a.task.title}</span>
+                  <span className="text-xs text-white/40 ml-3">
+                    {a.task.estimatedMinutes} min • {a.task.priorityScore}
+                  </span>
+                </button>
+                {overrideFor === a.task.id && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="text-xs text-white/50 w-full">Why override the top pick?</span>
+                    {OVERRIDE_REASONS.map((o) => (
+                      <button
+                        key={o.value}
+                        onClick={() => overrideAndStart(a.task, o.value)}
+                        className="px-3 py-1.5 rounded-full bg-white/10 text-xs font-bold hover:bg-[#FC703C] hover:text-[#2B1B17] transition-all"
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

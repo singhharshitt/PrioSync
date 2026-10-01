@@ -2,7 +2,7 @@ import express from 'express';
 import {
     getTasks, getTask, createTask, updateTask, deleteTask,
     replaceDependencies, getTopTasks, getStats, getDAG,
-    getExplain, getNext, logFocusSession,
+    getExplain, getNext, logFocusSession, recalc,
 } from '../controllers/pgTaskController.js';
 import { protectPg } from '../middleware/pgAuth.js';
 import {
@@ -18,6 +18,7 @@ router.get('/top', getTopTasks);
 router.get('/stats', getStats);
 router.get('/dag', getDAG);
 router.get('/next', getNext);
+router.post('/recalc', recalc);
 router.post('/focus-session', validate(focusSessionSchema), logFocusSession);
 
 router.route('/').get(getTasks).post(validate(taskCreateSchema), createTask);
