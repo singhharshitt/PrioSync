@@ -1,5 +1,5 @@
 /**
- * PG task repository — raw SQL.
+ * PG task repository - raw SQL.
  * Dependency edges live in task_dependencies (relational DAG, not an array).
  * Callers orchestrate transactions; every mutator accepts a txn client.
  */
@@ -20,7 +20,7 @@ const ROW = `t.id, t.user_id, t.project_id, t.goal_id, t.parent_task_id,
     t.priority_score, t.priority_tier, t.energy_fit, t.category,
     t.completed_at, t.version, t.created_at, t.updated_at`;
 
-// UPDATE ... RETURNING cannot use the `t.` alias (no FROM clause) — same columns, unqualified.
+// UPDATE ... RETURNING cannot use the `t.` alias (no FROM clause) - same columns, unqualified.
 const RET = `id, user_id, project_id, goal_id, parent_task_id,
     title, description, status, importance, urgency, difficulty,
     friction, estimated_minutes, deadline, scheduled_start, scheduled_end,
@@ -42,7 +42,7 @@ const attachDeps = async (rows, client) => {
 
 /**
  * Populate dependency details (title/status/score) for listed tasks in one
- * query — the same fields v1 returned via populate(), which TaskCard renders.
+ * query - the same fields v1 returned via populate(), which TaskCard renders.
  */
 const attachDepDetails = async (rows, client) => {
     const withDeps = rows.filter((r) => (r.dependencies || []).length > 0);

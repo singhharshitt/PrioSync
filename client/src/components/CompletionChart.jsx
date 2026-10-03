@@ -29,7 +29,7 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 /**
- * CompletionChart — pie charts for tier and status distribution with GSAP-inspired design
+ * CompletionChart - pie charts for tier and status distribution with GSAP-inspired design
  */
 const CompletionChart = ({ byTier = {}, byStatus = {} }) => {
     const tierData = Object.entries(byTier)

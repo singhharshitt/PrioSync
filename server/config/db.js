@@ -11,7 +11,7 @@ const connectDB = async () => {
   const conn = await mongoose.connect(process.env.MONGO_URI, {
     serverSelectionTimeoutMS: 10000,   // Wait 10s for server selection
     socketTimeoutMS: 45000,            // Close sockets after 45s of inactivity
-    family: 4,                         // Force IPv4 — fixes SRV DNS issues on Windows
+    family: 4,                         // Force IPv4 - fixes SRV DNS issues on Windows
     maxPoolSize: 10,                   // Connection pool size
     retryWrites: true,                 // Retry failed writes
   });
@@ -22,7 +22,7 @@ const connectDB = async () => {
 
 /*
  * State-transition logging only. Mongoose emits disconnected/error on EVERY
- * failed retry attempt — logging them unconditionally floods the console
+ * failed retry attempt - logging them unconditionally floods the console
  * (one error block per retry). We log the first failure of an outage, stay
  * silent while the state is unchanged, and log recovery.
  */
@@ -42,7 +42,7 @@ const markConnected = () => {
 };
 
 mongoose.connection.on('reconnected', markConnected);
-// Initial successful connect emits 'connected' (not 'reconnected') — clear the
+// Initial successful connect emits 'connected' (not 'reconnected') - clear the
 // outage flag either way so a later disconnect logs again.
 mongoose.connection.on('connected', () => {
   if (inOutage) markConnected();

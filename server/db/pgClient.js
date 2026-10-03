@@ -10,12 +10,12 @@ const { Pool } = pg;
  * AAAA; on IPv4-only hosts (typical Windows dev machines) the IPv6-first
  * default makes connection attempts wander before happy-eyeballs fallback.
  * Same class of fix as mongoose `family: 4` in config/db.js. Harmless where
- * IPv6 works — it only changes result ordering, not capability.
+ * IPv6 works - it only changes result ordering, not capability.
  */
 try {
     dns.setDefaultResultOrder('ipv4first');
 } catch {
-    // Very old Node without the API — DNS order stays as-is.
+    // Very old Node without the API - DNS order stays as-is.
 }
 
 /**
@@ -34,7 +34,7 @@ export const resolvePostgresUri = () => {
 
 export const getPostgresUriSource = () => {
     if (process.env.POSTGRES_URI) return 'POSTGRES_URI';
-    if (process.env.POSTGRESS_URI) return 'POSTGRESS_URI (legacy typo — rename to POSTGRES_URI)';
+    if (process.env.POSTGRESS_URI) return 'POSTGRESS_URI (legacy typo - rename to POSTGRES_URI)';
     if (process.env.DATABASE_URL) return 'DATABASE_URL';
     return null;
 };
@@ -51,11 +51,11 @@ const isLocalUri = (connectionString) =>
 /**
  * Normalize the sslmode query param so pg-connection-string never sees an
  * "alias" mode (prefer/require/verify-ca) and warns about future semantics:
- * - remote (Neon): force `sslmode=verify-full` — identical to today's effective
+ * - remote (Neon): force `sslmode=verify-full` - identical to today's effective
  *   behavior (pg already treats require as verify-full; Neon certs verify).
  * - local (compose/dev): drop sslmode entirely so no SSL is attempted.
  * pg's parse() output overrides any explicit `ssl` pool option, so the URI is
- * the single source of truth for TLS — the pool no longer sets `ssl` itself.
+ * the single source of truth for TLS - the pool no longer sets `ssl` itself.
  */
 const normalizeSslMode = (connectionString) => {
     try {
@@ -91,7 +91,7 @@ export const connectPostgres = async () => {
         idleTimeoutMillis: 30000,
         // Generous on purpose: a suspended Neon compute can take many seconds
         // to wake on first contact. Transient wake stalls surface as 503s
-        // (see errorHandler) and the boot loop retries — not as 500s.
+        // (see errorHandler) and the boot loop retries - not as 500s.
         connectionTimeoutMillis: 20000,
     });
 
@@ -99,7 +99,7 @@ export const connectPostgres = async () => {
         logger.error({ err }, 'Postgres pool error');
     });
 
-    // Fail fast if credentials/URI are wrong — do not retry silently here.
+    // Fail fast if credentials/URI are wrong - do not retry silently here.
     // Runs BEFORE instrumentation: connect/probe time is not query latency.
     // On ANY probe failure (refused connect or failed SELECT) the half-built
     // pool is torn down so isPostgresReady() stays false: routes 503 fast

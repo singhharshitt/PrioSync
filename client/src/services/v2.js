@@ -1,7 +1,7 @@
 import httpClient from '../api/httpClient.js';
 
 /**
- * v2 (Postgres) API layer. The client is fully cut over to /api/v2 — one
+ * v2 (Postgres) API layer. The client is fully cut over to /api/v2 - one
  * session (priosync_token) shared with authService/taskService; the
  * Authorization header is attached by the httpClient request interceptor.
  */

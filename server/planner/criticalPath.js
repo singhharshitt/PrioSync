@@ -1,5 +1,5 @@
 /**
- * Critical path + bottleneck detection — deterministic and pure.
+ * Critical path + bottleneck detection - deterministic and pure.
  * Reuses the tested DAG implementation (dsa-engine/dag.js); cycle-creating
  * edges are rejected by addEdge itself, so adversarial input stays safe.
  *

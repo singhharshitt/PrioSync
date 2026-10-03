@@ -106,7 +106,7 @@ const DependencyGraph = ({ graph }) => {
   return (
     <div className="w-full">
       <p className="sm:hidden text-xs font-bold text-[#2B1B17]/40 mb-2">Swipe sideways to explore →</p>
-      {/* Graph Container with Retro Shadow — horizontal rail on small screens */}
+      {/* Graph Container with Retro Shadow - horizontal rail on small screens */}
       <div className="overflow-x-auto scroll-rail rounded-2xl">
       <div className="relative bg-[#2B1B17] rounded-2xl p-4 shadow-[4px_4px_0_#452215] overflow-hidden min-w-[600px] sm:min-w-0">
         {/* Background Pattern */}
@@ -257,7 +257,8 @@ const DependencyGraph = ({ graph }) => {
                   textAnchor="middle"
                   fill={color}
                   fontSize={13}
-                  fontWeight="800"
+                  fontWeight="600"
+                  className="font-mono"
                 >
                   {node.priorityScore}
                 </text>

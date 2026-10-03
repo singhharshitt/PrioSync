@@ -124,7 +124,7 @@ export const getStats = async (req, res, next) => {
     }
 };
 
-/** POST /api/v2/tasks/recalc — rescore drifted priorities without blocking reads. */
+/** POST /api/v2/tasks/recalc - rescore drifted priorities without blocking reads. */
 export const recalc = async (req, res, next) => {
     try {
         const out = await enqueueRecalc(req.user.id);
@@ -197,7 +197,7 @@ export const getNext = async (req, res, next) => {
             return res.json({
                 success: true,
                 recommendation: null,
-                message: 'Nothing fits right now — clear a blocker or add a shorter task.',
+                message: 'Nothing fits right now - clear a blocker or add a shorter task.',
                 excluded: { blocked: excludedBlocked, tooLong: excludedTooLong },
             });
         }

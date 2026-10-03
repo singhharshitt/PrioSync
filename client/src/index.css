@@ -1,6 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Bpmf+Huninn&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 @import "tailwindcss";
 
+/* ==================== TYPE SYSTEM ==================== */
+/* Primary UI: Inter (dashboards, tables, numbers, forms - readable at small sizes) */
+/* Headings: Plus Jakarta Sans (page titles, feature headings) */
+/* Technical data: IBM Plex Mono (scores, timestamps, IDs, durations, states) */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
 /* ==================== GLOBAL DESIGN TOKENS ==================== */
 :root {
   /* PRIMARY BRAND COLORS */
@@ -581,7 +597,7 @@ html {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* iOS Safari auto-zooms on focus when inputs are <16px — keep 16px on touch */
+/* iOS Safari auto-zooms on focus when inputs are <16px - keep 16px on touch */
 @media (max-width: 768px) {
   input,
   textarea,

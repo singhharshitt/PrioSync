@@ -24,7 +24,7 @@ class MaxHeap {
     }
 
     /**
-     * Insert a new item into the heap — O(log n)
+     * Insert a new item into the heap - O(log n)
      */
     insert(item) {
         this.heap.push(item);
@@ -32,7 +32,7 @@ class MaxHeap {
     }
 
     /**
-     * Remove and return the maximum element — O(log n)
+     * Remove and return the maximum element - O(log n)
      */
     extractMax() {
         if (this.heap.length === 0) return null;
@@ -45,7 +45,7 @@ class MaxHeap {
     }
 
     /**
-     * Build heap from an array — O(n)
+     * Build heap from an array - O(n)
      */
     buildFromArray(items) {
         this.heap = [...items];
@@ -56,7 +56,7 @@ class MaxHeap {
     }
 
     /**
-     * Extract all elements in descending order — O(n log n)
+     * Extract all elements in descending order - O(n log n)
      */
     extractAll() {
         const sorted = [];

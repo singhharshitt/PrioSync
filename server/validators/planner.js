@@ -17,7 +17,7 @@ export const parseSchema = z.object({
 });
 
 /**
- * POST /api/v2/planner/confirm — staged plan the user reviewed/edited.
+ * POST /api/v2/planner/confirm - staged plan the user reviewed/edited.
  * estimatedMinutes is OPTIONAL on purpose: absence flags the estimate as
  * uncertain for plan-health (vs. silently treating a default as truth).
  */

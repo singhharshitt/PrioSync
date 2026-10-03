@@ -1,5 +1,5 @@
 /**
- * Redis connection (optional). Best-effort: the API works without Redis —
+ * Redis connection (optional). Best-effort: the API works without Redis -
  * caching degrades to direct Postgres reads and jobs run inline.
  * Set REDIS_URL (Upstash/Render/local) to enable cache + queues.
  */
@@ -47,7 +47,7 @@ export const connectRedis = async () => {
     }
 };
 
-/** BullMQ requires maxRetriesPerRequest:null — separate connection, same URL. */
+/** BullMQ requires maxRetriesPerRequest:null - separate connection, same URL. */
 export const bullConnection = () => {
     const url = redisUrl();
     if (!url) return null;

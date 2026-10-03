@@ -1,5 +1,5 @@
 /**
- * Auto-replan — proposes, never imposes.
+ * Auto-replan - proposes, never imposes.
  * Detect missed (overdue active) tasks → greedy day-packing proposal →
  * user accepts/edits → transactional deadline moves + decision-log events.
  * Every automatic suggestion is explainable; every applied change is audited.
@@ -68,7 +68,7 @@ export const proposeReplan = async (userId, { taskIds = null, availableMinutesPe
             newDeadline: slot.toISOString(),
             estimatedMinutes: need,
             day: key,
-            reason: `Missed ${new Date(t.deadline).toLocaleDateString()} — suggested next slot with room`,
+            reason: `Missed ${new Date(t.deadline).toLocaleDateString()} - suggested next slot with room`,
         });
     }
     const impact = [...dayLoad.entries()].map(([day, addedMinutes]) => ({ day, addedMinutes }));
@@ -139,7 +139,7 @@ export const decisionLog = async (userId, limit = 20) => {
 };
 
 /**
- * Recommendation feedback — the personalization substrate. Stores what was
+ * Recommendation feedback - the personalization substrate. Stores what was
  * suggested vs what the user actually chose and why. No ML yet; first we
  * collect high-quality (recommendation → decision → outcome) triples.
  */

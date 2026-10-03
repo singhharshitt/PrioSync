@@ -1,5 +1,5 @@
 /**
- * PG user repository — raw SQL.
+ * PG user repository - raw SQL.
  * All functions take an optional queryable (pool or txn client) defaulting to the pool.
  * Password hashing stays in the service layer; this module stores password_hash verbatim.
  */

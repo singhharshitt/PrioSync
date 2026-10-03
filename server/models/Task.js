@@ -28,7 +28,7 @@ const taskSchema = new mongoose.Schema(
             type: Date,
             required: [true, 'Deadline is required'],
         },
-        // Priority factors — all on scale 1–5
+        // Priority factors - all on scale 1–5
         importance: {
             type: Number,
             required: true,
@@ -63,7 +63,7 @@ const taskSchema = new mongoose.Schema(
                 ref: 'Task',
             },
         ],
-        // Computed priority score (0–100) — updated by DSA engine
+        // Computed priority score (0–100) - updated by DSA engine
         priorityScore: {
             type: Number,
             default: 0,

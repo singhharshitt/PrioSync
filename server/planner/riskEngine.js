@@ -1,5 +1,5 @@
 /**
- * Deadline Risk Engine — deterministic and pure.
+ * Deadline Risk Engine - deterministic and pure.
  *
  * Estimates whether in-scope workload can realistically finish before its
  * deadline. NOT a prediction: a transparent arithmetic model over
@@ -126,7 +126,7 @@ export const assessDeadlineRisk = (
         return {
             riskLevel: 'LOW',
             riskScore: 0,
-            summary: 'No open work in scope — nothing at risk.',
+            summary: 'No open work in scope - nothing at risk.',
             factors: [{ code: 'empty', severity: 'info', points: 0, message: 'No pending or in-progress tasks in scope.' }],
             remainingMinutes: 0,
             capacityMinutes,
@@ -171,7 +171,7 @@ export const assessDeadlineRisk = (
             'concentration',
             'warning',
             focusPoints,
-            `"${focusTask.title}" holds ${(focusTask.downstreamMinutes / 60).toFixed(1)}h of downstream work — a single stall propagates widely.`,
+            `"${focusTask.title}" holds ${(focusTask.downstreamMinutes / 60).toFixed(1)}h of downstream work - a single stall propagates widely.`,
             { taskId: focusTask.taskId }
         );
     }
@@ -180,7 +180,7 @@ export const assessDeadlineRisk = (
             'uncalibrated',
             'info',
             0,
-            `Estimates are uncalibrated (only ${calibrationSamples} timed session${calibrationSamples === 1 ? '' : 's'} on completed work) — durations are taken at face value.`
+            `Estimates are uncalibrated (only ${calibrationSamples} timed session${calibrationSamples === 1 ? '' : 's'} on completed work) - durations are taken at face value.`
         );
     } else if (calibrationFactor !== 1) {
         push(
@@ -191,7 +191,7 @@ export const assessDeadlineRisk = (
         );
     }
     if (!scopeDeadline) {
-        push('no_deadline', 'info', 0, 'No deadlines in scope — assessed against a 7-day capacity horizon.');
+        push('no_deadline', 'info', 0, 'No deadlines in scope - assessed against a 7-day capacity horizon.');
     }
 
     let riskScore = Math.min(

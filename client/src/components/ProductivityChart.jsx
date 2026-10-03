@@ -14,7 +14,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 /**
- * ProductivityChart — weekly task completion area chart with GSAP-inspired design
+ * ProductivityChart - weekly task completion area chart with GSAP-inspired design
  */
 const ProductivityChart = ({ data = [] }) => {
     if (!data.length) {

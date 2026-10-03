@@ -79,7 +79,7 @@ class DAG {
     }
 
     /**
-     * Topological sort — returns tasks in completion order
+     * Topological sort - returns tasks in completion order
      * Tasks with no dependencies come first (Kahn's algorithm)
      *
      * Edge convention: adjacencyList `from -> deps` means "from depends on deps".

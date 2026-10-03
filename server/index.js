@@ -92,7 +92,7 @@ const requireDatabaseConnection = (req, res, next) => {
   });
 };
 
-// Root route — Render health checks hit this
+// Root route - Render health checks hit this
 app.get('/', (req, res) => {
   res.send('PrioSync Backend API is running');
 });
@@ -172,7 +172,7 @@ const connectDatabaseWithRetry = async () => {
 // Postgres runs alongside Mongo during migration (dual-DB phase).
 // Mongo remains primary until the repository swap is verified.
 // Same backoff discipline as Mongo: Neon free-tier computes suspend after
-// idle minutes, so the first connection after idle can time out — the loop
+// idle minutes, so the first connection after idle can time out - the loop
 // keeps trying quietly instead of failing once at boot.
 const PG_RETRY_BASE_MS = 5000;
 const PG_RETRY_MAX_MS = 5 * 60 * 1000;

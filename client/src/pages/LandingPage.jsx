@@ -63,7 +63,7 @@ const LandingPage = () => {
     {
       icon: Zap,
       title: 'Greedy Scheduling',
-      desc: 'Automatic task ordering using greedy algorithm — always work on the highest-impact tasks first.',
+      desc: 'Automatic task ordering using greedy algorithm - always work on the highest-impact tasks first.',
       stat: '2.4x',
       statLabel: 'Efficiency Gain'
     },
@@ -99,7 +99,7 @@ const LandingPage = () => {
   const chartHeights = [76, 58, 83, 64, 91, 47, 70];
 
   return (
-    <div className="min-h-screen bg-[#f8f7f2] bpmf-huninn-regular">
+    <div className="min-h-screen bg-[#f8f7f2]">
 
       {/* Floating Navigation */}
       <nav className="top-0 left-0 right-0 z-50 px-6 pt-6">
@@ -174,10 +174,10 @@ const LandingPage = () => {
 
             {/* Massive Typography */}
             <div className="hero-title pt-12 md:pt-8">
-              <h1 className="text-[12vw] md:text-[10vw] lg:text-[9vw] font-bold text-[#2B1B17] leading-[0.9] tracking-tighter chillax-bold">
+              <h1 className="text-[12vw] md:text-[10vw] lg:text-[9vw] font-bold text-[#2B1B17] leading-[0.9] tracking-tighter font-display">
                 Prioritize
               </h1>
-              <h1 className="text-[12vw] md:text-[10vw] lg:text-[9vw] font-bold leading-[0.9] tracking-tighter chillax-bold">
+              <h1 className="text-[12vw] md:text-[10vw] lg:text-[9vw] font-bold leading-[0.9] tracking-tighter font-display">
                 <span className="text-[#FC703C]">Every</span>thing
               </h1>
             </div>
@@ -212,7 +212,7 @@ const LandingPage = () => {
               <div className="flex items-start gap-4 mb-4">
                 <span className="text-4xl text-[#2B1B17] font-light">{`{`}</span>
                 <p className="text-lg md:text-xl text-[#4A3A36] leading-relaxed pt-2">
-                  PrioSync — A wildly robust task prioritization engine built for professionals who demand focus.
+                  PrioSync - A wildly robust task prioritization engine built for professionals who demand focus.
                 </p>
                 <span className="text-4xl text-[#2B1B17] font-light">{`}`}</span>
               </div>
@@ -389,14 +389,14 @@ const LandingPage = () => {
 
             {/* Left Content */}
             <div className="space-y-8">
-              <h2 className="text-5xl lg:text-6xl font-bold text-[#2B1B17] leading-[1.05] tracking-tight chillax-semibold">
+              <h2 className="text-5xl lg:text-6xl font-bold text-[#2B1B17] leading-[1.05] tracking-tight font-display">
                 Your priorities,
                 <br />
                 <span className="text-[#FC703C]">scientifically sorted.</span>
               </h2>
 
               <p className="text-lg text-[#4A3A36] leading-relaxed max-w-lg">
-                Our Max Heap algorithm analyzes urgency, importance, and deadlines to surface what matters most—right now.
+                Our Max Heap algorithm analyzes urgency, importance, and deadlines to surface what matters most-right now.
               </p>
 
               <div className="flex flex-wrap items-center gap-4">

@@ -9,7 +9,7 @@ const sendErr = (res, e) => {
 };
 
 /**
- * POST /api/v2/planner/parse — understand only. No DB writes.
+ * POST /api/v2/planner/parse - understand only. No DB writes.
  * Body: { text, mode?, context? } → { source, plan, note? }
  */
 export const parse = async (req, res, next) => {
@@ -22,7 +22,7 @@ export const parse = async (req, res, next) => {
             plan,
             note:
                 plan.clarificationsNeeded.length > 0
-                    ? 'Answer the clarifications and confirm — or confirm as-is and refine later.'
+                    ? 'Answer the clarifications and confirm - or confirm as-is and refine later.'
                     : 'Review, edit if needed, then confirm to create the plan.',
         });
     } catch (e) {
@@ -34,7 +34,7 @@ export const parse = async (req, res, next) => {
     }
 };
 
-/** POST /api/v2/planner/confirm — reviewed plan → durable state + schedule + health. */
+/** POST /api/v2/planner/confirm - reviewed plan → durable state + schedule + health. */
 export const confirm = async (req, res, next) => {
     try {
         const out = await Planner.confirmPlan(req.user.id, req.body);

@@ -72,7 +72,7 @@ const RetroSlider = ({ label, name, value, onChange, min = 1, max = 5, icon: Ico
 );
 
 /**
- * TaskModal — Retro GSAP-inspired Add / Edit task form
+ * TaskModal - Retro GSAP-inspired Add / Edit task form
  */
 const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [] }) => {
   const isEdit = Boolean(initialData);

@@ -1,5 +1,5 @@
 /**
- * Planner confirm — turns a REVIEWED staged plan into durable state.
+ * Planner confirm - turns a REVIEWED staged plan into durable state.
  * Transactional: goals → projects → tasks → deps → scores → events → plan snapshot.
  * Priority/schedule/health are deterministic (engine), never LLM output.
  */

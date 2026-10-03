@@ -1,5 +1,5 @@
 /**
- * PG task service — deterministic orchestration over repositories + DSA engine.
+ * PG task service - deterministic orchestration over repositories + DSA engine.
  * The LLM/planner (future) may SUGGEST tasks; this module DECIDES scores/order.
  * Every mutation writes a task_events row in the same transaction.
  */
@@ -298,7 +298,7 @@ export const explainPriority = async (userId, taskId) => {
 };
 
 /**
- * Dashboard stats — genuine SQL aggregation (GROUP BY + date_trunc CTE),
+ * Dashboard stats - genuine SQL aggregation (GROUP BY + date_trunc CTE),
  * streak computed in JS (gaps-and-islands in SQL is possible but opaque at this scale).
  */
 export const getStats = async (userId) => {
@@ -406,7 +406,7 @@ export const getDAG = async (userId) => {
     const heap = new MaxHeap();
     for (const t of tasks.rows) heap.insert({ id: t.id, score: t.priority_score });
     void heap.peek();
-    // v1-compatible camelCase node shape — DependencyGraph reads
+    // v1-compatible camelCase node shape - DependencyGraph reads
     // node.priorityScore / node.priorityTier.
     const nodes = tasks.rows.map((t) => ({
         id: t.id,

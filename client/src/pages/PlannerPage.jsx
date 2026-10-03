@@ -38,7 +38,7 @@ const PlannerFlow = () => {
       });
       setPreview(data.plan);
       if (data.plan.clarificationsNeeded?.length > 0) {
-        toast('Review the plan — a couple of details are still open.', { icon: '🔍' });
+        toast('Review the plan - a couple of details are still open.', { icon: '🔍' });
       }
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Could not understand that yet.');
@@ -64,7 +64,7 @@ const PlannerFlow = () => {
 
   const handleConfirm = async () => {
     if (!preview || preview.tasks.length === 0) {
-      toast.error('Nothing to plan — add at least one task.');
+      toast.error('Nothing to plan - add at least one task.');
       return;
     }
     setConfirming(true);
@@ -80,7 +80,7 @@ const PlannerFlow = () => {
         reason: 'planner page confirm',
       });
       setResult(data);
-      toast.success(`Plan created — health ${data.health.score}%`);
+      toast.success(`Plan created - health ${data.health.score}%`);
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Plan creation failed.');
     } finally {

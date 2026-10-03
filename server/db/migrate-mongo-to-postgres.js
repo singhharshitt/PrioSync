@@ -159,7 +159,7 @@ async function migrateUser(pool, mongoUser, client) {
         sessions++;
     }
 
-    // 5. Bootstrap history: one TASK_CREATED per task (idempotent-ish — skip if already present)
+    // 5. Bootstrap history: one TASK_CREATED per task (idempotent-ish - skip if already present)
     let events = 0;
     for (const t of mongoTasks) {
         const pgTaskId = taskIdByMongo.get(t._id.toString());
@@ -239,7 +239,7 @@ try {
     const p = await pgCounts(pool);
     console.log(`done: migrated users=${totals.users} tasks=${totals.tasks} depInserted=${totals.depInserted} skipped=${totals.depSkipped} sessions=${totals.sessions} events=${totals.events}`);
     console.log(`pg now: users=${p.users} tasks=${p.tasks} completed=${p.completed} depEdges=${p.depEdges}`);
-    console.log(`parity: mongoTasks=${m.tasks} pgTasks=${p.tasks} ${m.tasks === p.tasks ? 'OK' : 'MISMATCH — investigate'}`);
+    console.log(`parity: mongoTasks=${m.tasks} pgTasks=${p.tasks} ${m.tasks === p.tasks ? 'OK' : 'MISMATCH - investigate'}`);
 
     await mongoose.disconnect();
     await pool.end();

@@ -1,5 +1,5 @@
 /**
- * Plan health — COMPUTED from real data, never LLM-generated.
+ * Plan health - COMPUTED from real data, never LLM-generated.
  * 100 = healthy. Penalties are fixed, documented weights; checks/warnings
  * explain exactly what is wrong so the user can act on it.
  */
@@ -27,10 +27,10 @@ export const computePlanHealth = ({ tasks, availableMinutesPerDay, goalDeadline 
         if (totalMinutes <= capacity) {
             checks.push('Workload fits your available time');
             if (capacity - totalMinutes >= totalMinutes * 0.2) checks.push('Healthy buffer (20%+) for slippage');
-            else warnings.push('Little buffer — one slip day overloads the plan');
+            else warnings.push('Little buffer - one slip day overloads the plan');
         } else {
             const over = Math.round(((totalMinutes - capacity) / capacity) * 100);
-            warnings.push(`Overloaded by ~${over}% — cut scope or add ${Math.ceil((totalMinutes - capacity) / days)} min/day`);
+            warnings.push(`Overloaded by ~${over}% - cut scope or add ${Math.ceil((totalMinutes - capacity) / days)} min/day`);
             score -= Math.min(40, 15 + Math.round(over / 4));
         }
         // Day-level overload: even spread, is any day over budget?
@@ -40,7 +40,7 @@ export const computePlanHealth = ({ tasks, availableMinutesPerDay, goalDeadline 
             score -= 10;
         }
     } else {
-        warnings.push('Daily availability unknown — health assumes unlimited time');
+        warnings.push('Daily availability unknown - health assumes unlimited time');
         score -= 10;
     }
 
@@ -55,7 +55,7 @@ export const computePlanHealth = ({ tasks, availableMinutesPerDay, goalDeadline 
     // 3. Estimate uncertainty (heuristic defaults are 30 min guesses)
     const uncertain = tasks.filter((t) => t.estimatedUncertain).length;
     if (uncertain > 0) {
-        warnings.push(`${uncertain} estimate${uncertain > 1 ? 's are' : ' is'} a guess — confirm after first session`);
+        warnings.push(`${uncertain} estimate${uncertain > 1 ? 's are' : ' is'} a guess - confirm after first session`);
         score -= Math.min(10, uncertain * 2);
     }
 

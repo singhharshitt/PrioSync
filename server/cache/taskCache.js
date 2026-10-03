@@ -1,7 +1,7 @@
 /**
  * Cache-aside for hot user-scoped reads.
- *   top   GET /api/v2/tasks/top    TTL 60s   — invalidated by any task write
- *   stats GET /api/v2/tasks/stats  TTL 120s  — invalidated by task writes + focus sessions
+ *   top   GET /api/v2/tasks/top    TTL 60s   - invalidated by any task write
+ *   stats GET /api/v2/tasks/stats  TTL 120s  - invalidated by task writes + focus sessions
  * Miss/Redis-down → caller falls through to Postgres (never fails the request).
  */
 import { getRedis, isRedisReady } from './redisClient.js';

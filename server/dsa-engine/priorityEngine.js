@@ -1,5 +1,5 @@
 /**
- * Priority Engine — Core DSA Score Calculator
+ * Priority Engine - Core DSA Score Calculator
  *
  * Computes a priority score (0–100) for each task using a weighted formula:
  *
@@ -41,7 +41,7 @@ const calcDeadlineScore = (deadline) => {
 };
 
 /**
- * Get difficulty ease bonus — easier tasks rank slightly higher
+ * Get difficulty ease bonus - easier tasks rank slightly higher
  * @param {number} difficulty 1–5 (5 = hardest)
  * @returns {number} 1–5 (inverted)
  */
@@ -85,7 +85,7 @@ export const calculatePriorityScore = (task, options = {}) => {
     // Convert to 0–100 (max weighted sum = 5, so × 20)
     let score = Math.round(weightedSum * 20);
 
-    // Penalty for blocked tasks — deprioritize until deps are cleared
+    // Penalty for blocked tasks - deprioritize until deps are cleared
     if (hasBlockedDependencies) {
         score = Math.max(0, score - 20);
     }

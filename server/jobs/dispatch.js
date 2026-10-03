@@ -19,7 +19,7 @@ const getQueue = () => {
 export const enqueueRecalc = async (userId) => {
     const q = getQueue();
     if (!q) {
-        logger.info({ userId }, 'no Redis — recalc running inline');
+        logger.info({ userId }, 'no Redis - recalc running inline');
         const result = await runRecalc({ userId });
         return { queued: false, ranInline: true, result };
     }

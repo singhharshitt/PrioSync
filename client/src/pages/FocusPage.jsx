@@ -45,7 +45,7 @@ const ReplanBanner = ({ onApplied }) => {
         moves: moves.map((m) => ({ taskId: m.taskId, newDeadline: new Date(m.newDeadline).toISOString() })),
         reason: 'accepted from Focus replan banner',
       });
-      toast.success(`Plan updated — ${data.applied.length} task${data.applied.length === 1 ? '' : 's'} moved.`);
+      toast.success(`Plan updated - ${data.applied.length} task${data.applied.length === 1 ? '' : 's'} moved.`);
       setMissed([]);
       setProposal(null);
       onApplied?.();
@@ -91,7 +91,7 @@ const ReplanBanner = ({ onApplied }) => {
           {proposal.impact?.length > 0 && (
             <p className="text-yellow-100/60 text-xs">
               Impact: {proposal.impact.map((x) => `${x.day} +${x.addedMinutes} min`).join(' • ')}
-              {proposal.assumedCapacity ? ' (assuming 240 min/day — set availability in Planner)' : ''}
+              {proposal.assumedCapacity ? ' (assuming 240 min/day - set availability in Planner)' : ''}
             </p>
           )}
           <div className="flex gap-3 pt-1">
@@ -224,10 +224,10 @@ const FocusFlow = () => {
       });
       if (completed) {
         await v2Tasks.complete(rec.task.id);
-        toast.success(`Done — ${rec.task.title} completed in ${format(durationSeconds)}.`);
+        toast.success(`Done - ${rec.task.title} completed in ${format(durationSeconds)}.`);
         setRec(null);
       } else {
-        toast.success(`Session logged — ${format(durationSeconds)}.`);
+        toast.success(`Session logged - ${format(durationSeconds)}.`);
       }
       fetchNext();
     } catch {
@@ -298,7 +298,7 @@ const FocusFlow = () => {
             <div className="flex items-center justify-center gap-2 text-white/40 text-xs font-black uppercase tracking-widest mb-2">
               <Timer size={14} /> {running ? 'Focusing' : 'Ready'}
             </div>
-            <div className="text-6xl font-black tabular-nums tracking-tight">{format(elapsed)}</div>
+            <div className="text-6xl font-black font-mono tabular-nums tracking-tight">{format(elapsed)}</div>
             <div className="flex items-center justify-center gap-3 mt-6">
               {!running ? (
                 <button

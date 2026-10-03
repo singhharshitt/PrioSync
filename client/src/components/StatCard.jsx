@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Zap } from 'lucide-react';
 
 /**
- * StatCard — Retro GSAP-inspired dashboard metric card
+ * StatCard - Retro GSAP-inspired dashboard metric card
  * Features: Pinwheel loader, warm palette, tactile hover states, counter animation
  */
 const StatCard = ({ label, value, icon: Icon, color = '#FC703C', sublabel, trend }) => {

@@ -2,7 +2,7 @@
  * Brain-Dump → structured plan, two paths:
  *  - LLM path (when LLM_API_KEY is set, or mode:'ai'): language understanding via model.
  *  - Heuristic path (default without a key, or mode:'heuristic'): deterministic regex/structure rules.
- * BOTH paths return data validated against aiPlanSchema. Neither assigns priority —
+ * BOTH paths return data validated against aiPlanSchema. Neither assigns priority -
  * the deterministic engine does that at confirm time.
  */
 import { aiPlanSchema } from './plannerSchema.js';
@@ -43,7 +43,7 @@ const sniffDeadline = (text, now = new Date()) => {
         if (new RegExp(`\\b${name}\\b`).test(t)) return atMidnightPlus(now, i === 0 ? 7 : i);
     }
     // NOTE: ordinal/month-name exam dates ("exam on the 15th", "15 Jan") are not
-    // sniffed yet — the goal falls back to no deadline and the UI asks for one.
+    // sniffed yet - the goal falls back to no deadline and the UI asks for one.
     return null;
 };
 
@@ -63,9 +63,9 @@ const guessEffort = (title) => {
     return 30;
 };
 
-/** Declarative context ("My assessment is next week") — deadline fuel, not tasks. */
+/** Declarative context ("My assessment is next week") - deadline fuel, not tasks. */
 const CONTEXT_RE = /^(my|the|it|this|that|assessment|exam|deadline)\b.*\b(is|are|was|were|has|have)\b/i;
-/** State-of-mind lines ("I haven't started X") — friction signal, not tasks. */
+/** State-of-mind lines ("I haven't started X") - friction signal, not tasks. */
 const STATE_RE = /^(i haven't|i havent|i don't know|i dunno|i'm|i am|i feel|i struggle)\b/i;
 
 const cleanPhrase = (s) =>
@@ -115,7 +115,7 @@ const splitTasks = (text) => {
 
 /**
  * Goal title. `structured: true` when it came from an explicit pattern
- * ("prepare for X" / "need to X") — only then may the goal phrase be dropped
+ * ("prepare for X" / "need to X") - only then may the goal phrase be dropped
  * from the task list (it is an umbrella restatement). The fallback (first
  * clause) is NOT allowed to swallow a line from a multi-line task list.
  */
@@ -153,7 +153,7 @@ export const heuristicParse = (text, context = {}) => {
     const all = splitTasks(text);
     // Drop a phrase only if it restates a structured goal, or if it is the
     // sole candidate (a one-liner becomes the goal and we ask for specifics).
-    // A multi-line list keeps every line — losing a real task is worse than
+    // A multi-line list keeps every line - losing a real task is worse than
     // a goal that shares a title with its first task.
     const dropGoalPhrase = structured || all.length <= 1;
     const phrases = all.filter((p) => !(dropGoalPhrase && norm(p) === norm(goal)));

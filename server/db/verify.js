@@ -1,7 +1,7 @@
 /**
  * PG schema verify / apply utility.
- *   node db/verify.js          — read-only: ping + list tables + counts
- *   node db/verify.js --apply  — apply schema.sql, then verify
+ *   node db/verify.js          - read-only: ping + list tables + counts
+ *   node db/verify.js --apply  - apply schema.sql, then verify
  * Never prints connection strings or secrets.
  */
 import path from 'path';

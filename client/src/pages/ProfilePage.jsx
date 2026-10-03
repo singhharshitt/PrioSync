@@ -67,7 +67,7 @@ const ProfilePage = () => {
   const tierInfo = tier;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular">
+    <div className="flex h-dvh overflow-hidden bg-[#f8f7f2]">
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">

@@ -1,6 +1,6 @@
 /**
  * Postgres integration flows. OPT-IN ONLY: RUN_PG_TESTS=1
- * Uses temp __test__ users on the configured database with cascade cleanup —
+ * Uses temp __test__ users on the configured database with cascade cleanup -
  * point at a throwaway Neon branch in CI, never at production data.
  */
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';

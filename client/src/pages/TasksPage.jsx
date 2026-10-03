@@ -117,7 +117,7 @@ const TasksPage = () => {
   const activeStatus = STATUSES.find((status) => status.id === filterStatus);
 
   return (
-    <div className="min-h-screen bg-[#f8f7f2] bpmf-huninn-regular">
+    <div className="min-h-screen bg-[#f8f7f2]">
       <div className="flex h-dvh overflow-hidden overflow-x-hidden">
         <Sidebar />
 

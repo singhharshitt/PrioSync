@@ -91,7 +91,7 @@ const PerformanceInsight = ({ title, value, max, color, icon, description }) => 
           </div>
           <span className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">{title}</span>
         </div>
-        <span className="text-lg font-black text-[#FDF8F0]">{value}<span className="text-[#CCC4BE]/40 text-sm">/{max}</span></span>
+        <span className="text-lg font-black font-mono text-[#FDF8F0]">{value}<span className="text-[#CCC4BE]/40 text-sm">/{max}</span></span>
       </div>
 
       {/* Progress bar with glow effect */}
@@ -324,7 +324,7 @@ const DashboardPage = () => {
   const velocity = stats?.velocity || 0;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular overflow-x-hidden">
+    <div className="flex h-dvh overflow-hidden bg-[#f8f7f2] overflow-x-hidden">
       <Sidebar />
 
       <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden relative">
@@ -429,7 +429,7 @@ const DashboardPage = () => {
                     onClick={() => handleEdit(task)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${task.priorityTier === 'critical' ? 'bg-red-100 text-red-600' :
+                      <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-full ${task.priorityTier === 'critical' ? 'bg-red-100 text-red-600' :
                         task.priorityTier === 'high' ? 'bg-orange-100 text-orange-600' :
                           task.priorityTier === 'medium' ? 'bg-yellow-100 text-yellow-600' :
                             'bg-green-100 text-green-600'
@@ -556,8 +556,8 @@ const DashboardPage = () => {
                       <Flame size={24} className="text-[#FC703C] animate-pulse" />
                     </h3>
                     <p className="text-[#CCC4BE] text-sm leading-relaxed">
-                      Focus score is <span className="text-[#FC703C] font-bold">{focusScore}</span> with a{' '}
-                      <span className="text-[#FC703C] font-bold">{streak}-day streak</span>.
+                      Focus score is <span className="text-[#FC703C] font-bold font-mono">{focusScore}</span> with a{' '}
+                      <span className="text-[#FC703C] font-bold font-mono">{streak}-day streak</span>.
                       Keep tackling critical tasks first to maintain this momentum.
                     </p>
                   </div>

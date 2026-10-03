@@ -3,13 +3,13 @@ import axios from 'axios';
 export const TOKEN_STORAGE_KEY = 'priosync_token';
 export const AUTH_UNAUTHORIZED_EVENT = 'priosync:auth:unauthorized';
 
-/** Pre-cutover dual-session key (removed — migrated to the main token at boot). */
+/** Pre-cutover dual-session key (removed - migrated to the main token at boot). */
 const LEGACY_V2_TOKEN_KEY = 'priosync_v2_token';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Decode (unverified — the server is the authority) the `id` claim to tell a
+ * Decode (unverified - the server is the authority) the `id` claim to tell a
  * v2 token (UUID user id, Postgres) from a stale v1 token (Mongo ObjectId).
  */
 const decodeTokenId = (token) => {
@@ -30,7 +30,7 @@ const isV2Token = (token) => UUID_RE.test(decodeTokenId(token) || '');
  * One-time session migration after the client cut over from /api (Mongo) to
  * /api/v2 (Postgres):
  * - adopt a valid legacy dual-session v2 token when no main token exists;
- * - drop stale v1 tokens (their Mongo ids don't resolve in Postgres — they
+ * - drop stale v1 tokens (their Mongo ids don't resolve in Postgres - they
  *   would only cause a confusing 401 on the first request);
  * - always clear the legacy key so only one session survives.
  */
@@ -48,7 +48,7 @@ const migrateStoredSession = () => {
     }
     localStorage.removeItem(LEGACY_V2_TOKEN_KEY);
   } catch {
-    // Storage unavailable (restricted contexts) — nothing to migrate.
+    // Storage unavailable (restricted contexts) - nothing to migrate.
   }
 };
 

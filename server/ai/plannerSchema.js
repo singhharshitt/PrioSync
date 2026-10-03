@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Strict schema for Brain-Dump AI output. Raw LLM JSON is NEVER trusted —
+ * Strict schema for Brain-Dump AI output. Raw LLM JSON is NEVER trusted -
  * it must pass this before anything reaches the preview, let alone the DB.
  * Scores/priority are deliberately ABSENT: the deterministic engine decides those.
  */

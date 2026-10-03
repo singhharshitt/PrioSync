@@ -1,6 +1,6 @@
 /**
  * Background job handlers. Handlers are pure functions of (job data) so the
- * dispatch layer can run them inline when Redis is down — same code, same result.
+ * dispatch layer can run them inline when Redis is down - same code, same result.
  */
 import { Worker } from 'bullmq';
 import { bullConnection } from '../cache/redisClient.js';

@@ -1,8 +1,8 @@
 /**
- * Minimal Prometheus-compatible metrics (no client lib — hand-rolled exposition).
+ * Minimal Prometheus-compatible metrics (no client lib - hand-rolled exposition).
  * Counters + latency sums/counts per route; DB latency; cache hits/misses;
  * job outcomes; AI calls. GET /api/metrics exposes text format for scraping.
- * NOTE: /api/metrics is unauthenticated by design (scraper convention) —
+ * NOTE: /api/metrics is unauthenticated by design (scraper convention) -
  * restrict it at the network layer in production.
  */
 export const httpStats = new Map(); // "METHOD route" -> { count, errors, sumMs, slow }

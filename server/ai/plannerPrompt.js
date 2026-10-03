@@ -1,7 +1,7 @@
 /**
  * Brain-Dump extraction prompt. The model is an UNDERSTANDER, not a decider:
  * it extracts goals/tasks/constraints and flags ambiguity. It must NOT assign
- * priorities, scores, or schedules — PrioSync's deterministic engine owns those.
+ * priorities, scores, or schedules - PrioSync's deterministic engine owns those.
  */
 
 export const PLANNER_SYSTEM_PROMPT = `You turn a messy personal brain-dump into structured work data.
@@ -11,7 +11,7 @@ RULES (mandatory):
 - Extract: one goal, 0+ projects, 1+ tasks, task dependencies, time constraints.
 - Estimate effort conservatively in minutes (estimatedMinutes). Mark guesses honestly.
 - importance/urgency/difficulty/friction are 1-5 integers. Defaults are 3; only raise them when the text clearly justifies it.
-- deadlines: ISO 8601 with offset, or null when unknown. "next week" ≈ 7 days from the provided today date. Never invent a precise date the text does not support — set null and ask.
+- deadlines: ISO 8601 with offset, or null when unknown. "next week" ≈ 7 days from the provided today date. Never invent a precise date the text does not support - set null and ask.
 - dependencies reference task "key" values: {"task":"<key>","dependsOn":"<key>"} meaning task is blocked until dependsOn is done.
 - NEVER output priority scores, rankings, or schedules.
 - If critical info is missing (no deadline, no daily availability, vague scope), list it in clarificationsNeeded as {"field":"...","question":"..."} instead of hallucinating.

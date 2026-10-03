@@ -1,5 +1,5 @@
 /**
- * LoadingSkeleton — shimmer placeholder cards with GSAP-inspired design
+ * LoadingSkeleton - shimmer placeholder cards with GSAP-inspired design
  */
 
 export const TaskSkeleton = () => (
