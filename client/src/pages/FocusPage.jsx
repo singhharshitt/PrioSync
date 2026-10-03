@@ -4,7 +4,6 @@ import {
   Zap, Play, Pause, RotateCcw, CheckCircle2, SkipForward, Timer,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar.jsx';
-import V2SessionGate from '../components/V2SessionGate.jsx';
 import { v2Tasks, v2Replans, v2Recommendations } from '../services/v2.js';
 import { CalendarClock } from 'lucide-react';
 
@@ -397,12 +396,10 @@ const FocusFlow = () => {
 };
 
 const FocusPage = () => (
-  <div className="flex h-screen overflow-hidden bg-[#f8f7f2] overflow-x-hidden">
+  <div className="flex h-dvh overflow-hidden bg-[#f8f7f2] overflow-x-hidden">
     <Sidebar />
     <main className="flex-1 overflow-y-auto">
-      <V2SessionGate>
-        <FocusFlow />
-      </V2SessionGate>
+      <FocusFlow />
     </main>
   </div>
 );

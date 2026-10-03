@@ -42,8 +42,8 @@ const sniffDeadline = (text, now = new Date()) => {
         const name = WEEKDAYS[(d.getDay() + i) % 7];
         if (new RegExp(`\\b${name}\\b`).test(t)) return atMidnightPlus(now, i === 0 ? 7 : i);
     }
-    m = t.match(/\bexam\b.*\b(\d{1,2})(st|nd|rd|th)?\b|\b(\d{1,2})(st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/);
-    void m;
+    // NOTE: ordinal/month-name exam dates ("exam on the 15th", "15 Jan") are not
+    // sniffed yet — the goal falls back to no deadline and the UI asks for one.
     return null;
 };
 
@@ -51,7 +51,6 @@ const EFFORT_RULES = [
     [/\b(learn|study|course|tutorial|chapter)\b/, 60],
     [/\b(assignment|project|build|implement|write report|essay)\b/, 90],
     [/\b(practice|problem set|exercise|workout)\b/, 30],
-    [/\b(revise|review|revise|revise|revise)\b/, 25],
     [/\b(revise|review|recap|flashcards|notes)\b/, 25],
     [/\b(mock|test|exam|quiz|assessment)\b/, 60],
     [/\b(email|call|book|pay|form|apply)\b/, 15],
@@ -114,15 +113,21 @@ const splitTasks = (text) => {
         .slice(0, 50);
 };
 
+/**
+ * Goal title. `structured: true` when it came from an explicit pattern
+ * ("prepare for X" / "need to X") — only then may the goal phrase be dropped
+ * from the task list (it is an umbrella restatement). The fallback (first
+ * clause) is NOT allowed to swallow a line from a multi-line task list.
+ */
 const goalTitle = (text) => {
     const m = text.match(/prepare for ([^.!\n]{3,80})/i) || text.match(/(?:need|want|have) to ([^.!\n]{3,80})/i);
     if (m) {
         const s = m[1].trim().replace(/\s+/g, ' ');
-        return s.charAt(0).toUpperCase() + s.slice(1);
+        return { title: s.charAt(0).toUpperCase() + s.slice(1), structured: true };
     }
     const first = text.split(/[.!?\n]/).map((s) => s.trim()).find((s) => s.length > 3) || text;
     const t = first.replace(/\s+/g, ' ').slice(0, 80);
-    return t.charAt(0).toUpperCase() + t.slice(1);
+    return { title: t.charAt(0).toUpperCase() + t.slice(1), structured: false };
 };
 
 /** "X before Y" / "after X, Y" / "X then Y" between known task titles → Y depends on X. */
@@ -137,16 +142,21 @@ const sniffDependencies = (tasks) => {
             const b = titles.findIndex((x, j) => j !== i && (x.includes(m[2].trim()) || m[2].trim().includes(x)));
             if (a >= 0 && b >= 0 && a !== b) deps.push({ task: tasks[b].key, dependsOn: tasks[a].key });
         }
-        void titles;
     });
     return deps;
 };
 
 export const heuristicParse = (text, context = {}) => {
     const now = new Date();
-    const goal = goalTitle(text);
+    const { title: goal, structured } = goalTitle(text);
     const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-    const phrases = splitTasks(text).filter((p) => norm(p) !== norm(goal));
+    const all = splitTasks(text);
+    // Drop a phrase only if it restates a structured goal, or if it is the
+    // sole candidate (a one-liner becomes the goal and we ask for specifics).
+    // A multi-line list keeps every line — losing a real task is worse than
+    // a goal that shares a title with its first task.
+    const dropGoalPhrase = structured || all.length <= 1;
+    const phrases = all.filter((p) => !(dropGoalPhrase && norm(p) === norm(goal)));
     const tasks = phrases.map((p, i) => ({
         key: `t${i + 1}`,
         title: p.charAt(0).toUpperCase() + p.slice(1),

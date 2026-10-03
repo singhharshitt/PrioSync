@@ -88,12 +88,10 @@ const Sidebar = () => {
     }
   }, [collapsed]);
 
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
+  const closeMobile = () => setMobileOpen(false);
 
   const handleLogout = () => {
+    closeMobile();
     logout();
     navigate('/login');
   };
@@ -107,7 +105,7 @@ const Sidebar = () => {
       {!mobileOpen && (
         <button
           onClick={() => setMobileOpen(true)}
-          className="fixed top-4 left-4 z-50 md:hidden w-10 h-10 bg-[#2B1B17] border border-[#FC703C]/30 rounded-xl flex items-center justify-center text-[#FC703C] shadow-lg"
+          className="fixed safe-top left-4 z-50 md:hidden w-10 h-10 bg-[#2B1B17] border border-[#FC703C]/30 rounded-xl flex items-center justify-center text-[#FC703C] shadow-lg"
           aria-label="Open sidebar"
         >
           <Menu size={20} strokeWidth={2.5} />
@@ -123,7 +121,7 @@ const Sidebar = () => {
       )}
 
       <aside
-        className={`flex flex-col h-screen bg-[#2B1B17] border-r border-[#FC703C]/20 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${collapsed ? 'w-20' : 'w-72'
+        className={`flex flex-col h-dvh bg-[#2B1B17] border-r border-[#FC703C]/20 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${collapsed ? 'w-20' : 'w-72'
           } shrink-0 ${collapsed ? 'overflow-x-visible overflow-y-hidden' : 'overflow-hidden'} bpmf-huninn-regular
         fixed md:relative z-50 md:z-auto
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
@@ -196,6 +194,7 @@ const Sidebar = () => {
               <NavLink
                 key={to}
                 to={to}
+                onClick={closeMobile}
                 onMouseEnter={() => setHoveredItem(to)}
                 onMouseLeave={() => setHoveredItem(null)}
                 className={({ isActive }) => `

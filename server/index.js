@@ -3,7 +3,11 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
-import morgan from 'morgan';
+import helmet from 'helmet';
+import logger from './utils/logger.js';
+import { requestLogger, httpMetrics } from './middleware/observability.js';
+import { renderMetrics } from './utils/metrics.js';
+import { cacheMeta } from './cache/taskCache.js';
 import connectDB, { isDatabaseReady } from './config/db.js';
 import { connectPostgres, isPostgresReady } from './db/pgClient.js';
 import { connectRedis, isRedisReady } from './cache/redisClient.js';
@@ -23,7 +27,7 @@ dotenv.config({ path: path.join(__dirname, '.env'), override: false });
 const app = express();
 
 if (!process.env.JWT_SECRET) {
-  console.error('JWT_SECRET is missing in environment variables.');
+  logger.fatal('JWT_SECRET is missing in environment variables.');
   process.exit(1);
 }
 
@@ -45,12 +49,36 @@ app.use(
   }),
 );
 
+/**
+ * Security headers on every response (HSTS, no-sniff, frameguard, ...).
+ * The API serves JSON, so CSP is defense-in-depth; directives stay permissive
+ * for styles/fonts in case error pages ever render HTML. Revisit before
+ * serving any documents from this origin.
+ */
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: [
+          "'self'",
+          ...(process.env.NODE_ENV === 'development' ? ['ws://localhost:*', 'http://localhost:*'] : []),
+        ],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+app.use(requestLogger);
+app.use(httpMetrics);
 
 const requireDatabaseConnection = (req, res, next) => {
   if (isDatabaseReady()) {
@@ -90,12 +118,16 @@ app.use('/api/v2/plans', requirePostgres, plansRouter);
 app.use('/api/v2/replans', requirePostgres, replansRouter);
 app.use('/api/v2/recommendations', requirePostgres, recommendationsRouter);
 
+app.get('/api/metrics', (req, res) => {
+  res.type('text/plain; version=0.0.4').send(renderMetrics(cacheMeta));
+});
+
 app.get('/api/health', (req, res) => {
   const mongo = isDatabaseReady();
   const postgres = isPostgresReady();
   res.json({
-    success: mongo,
-    message: mongo ? 'PrioSync API is running' : 'PrioSync API is running without database',
+    success: mongo || postgres,
+    message: mongo || postgres ? 'PrioSync API is running' : 'PrioSync API is running without database',
     databaseConnected: mongo,
     postgresConnected: postgres,
     redisConnected: isRedisReady(),
@@ -110,39 +142,72 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-const DB_RETRY_INTERVAL_MS = 5000;
+
+/*
+ * Mongo retry with exponential backoff: 5s, 10s, 20s, ... capped at 5 min.
+ * A fixed 5s loop turns an unreachable Atlas into an error line every few
+ * seconds forever. First failure is logged in full (warn); later attempts are
+ * debug-level so the console reflects actual state changes, not every retry.
+ */
+const MONGO_RETRY_BASE_MS = 5000;
+const MONGO_RETRY_MAX_MS = 5 * 60 * 1000;
+let mongoRetryAttempt = 0;
 
 const connectDatabaseWithRetry = async () => {
   try {
     await connectDB();
+    mongoRetryAttempt = 0;
   } catch (error) {
-    console.error(`MongoDB connection error: ${error.message}`);
-    console.error(`Retrying database connection in ${DB_RETRY_INTERVAL_MS / 1000} seconds...`);
-    setTimeout(connectDatabaseWithRetry, DB_RETRY_INTERVAL_MS);
+    const delay = Math.min(MONGO_RETRY_BASE_MS * 2 ** mongoRetryAttempt, MONGO_RETRY_MAX_MS);
+    mongoRetryAttempt += 1;
+    if (mongoRetryAttempt === 1) {
+      logger.warn({ err: error, nextRetryInMs: delay }, 'MongoDB unavailable; retrying with backoff.');
+    } else {
+      logger.debug({ attempt: mongoRetryAttempt, nextRetryInMs: delay }, 'MongoDB retry scheduled.');
+    }
+    setTimeout(connectDatabaseWithRetry, delay);
   }
 };
 
 // Postgres runs alongside Mongo during migration (dual-DB phase).
 // Mongo remains primary until the repository swap is verified.
-const connectPostgresBestEffort = async () => {
+// Same backoff discipline as Mongo: Neon free-tier computes suspend after
+// idle minutes, so the first connection after idle can time out — the loop
+// keeps trying quietly instead of failing once at boot.
+const PG_RETRY_BASE_MS = 5000;
+const PG_RETRY_MAX_MS = 5 * 60 * 1000;
+let pgRetryAttempt = 0;
+
+const connectPostgresWithRetry = async () => {
+  if (isPostgresReady()) {
+    pgRetryAttempt = 0;
+    return;
+  }
   try {
     await connectPostgres();
+    pgRetryAttempt = 0;
   } catch (error) {
-    console.error(`Postgres connection error: ${error.message}`);
+    const delay = Math.min(PG_RETRY_BASE_MS * 2 ** pgRetryAttempt, PG_RETRY_MAX_MS);
+    pgRetryAttempt += 1;
+    if (pgRetryAttempt === 1) {
+      logger.warn({ err: error, nextRetryInMs: delay }, 'Postgres unavailable; retrying with backoff.');
+    } else {
+      logger.debug({ attempt: pgRetryAttempt, nextRetryInMs: delay }, 'Postgres retry scheduled.');
+    }
+    setTimeout(connectPostgresWithRetry, delay);
   }
 };
 
 const startServer = () => {
   try {
     app.listen(PORT, () => {
-      console.log(`PrioSync Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info({ port: PORT, env: process.env.NODE_ENV || 'development' }, 'PrioSync server running');
       connectDatabaseWithRetry();
-      connectPostgresBestEffort();
+      connectPostgresWithRetry();
       connectRedis().then(() => startWorkers()).catch(() => {});
     });
   } catch (error) {
-    console.error(`Failed to start server: ${error.message}`);
+    logger.fatal({ err: error }, 'Failed to start server');
     process.exit(1);
   }
 };

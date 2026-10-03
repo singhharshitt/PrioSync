@@ -40,6 +40,30 @@ const attachDeps = async (rows, client) => {
     return rows.map((row) => ({ ...row, dependencies: map.get(row.id) || [] }));
 };
 
+/**
+ * Populate dependency details (title/status/score) for listed tasks in one
+ * query — the same fields v1 returned via populate(), which TaskCard renders.
+ */
+const attachDepDetails = async (rows, client) => {
+    const withDeps = rows.filter((r) => (r.dependencies || []).length > 0);
+    if (withDeps.length === 0) return rows;
+    const r = await db(client).query(
+        `SELECT d.task_id, t.id, t.title, t.status, t.priority_score, t.priority_tier, t.deadline
+         FROM task_dependencies d JOIN tasks t ON t.id = d.depends_on_task_id
+         WHERE d.task_id = ANY($1)`,
+        [withDeps.map((row) => row.id)]
+    );
+    const map = new Map();
+    for (const d of r.rows) {
+        if (!map.has(d.task_id)) map.set(d.task_id, []);
+        map.get(d.task_id).push(d);
+    }
+    return rows.map((row) => ({
+        ...row,
+        dependencyDetails: map.get(row.id) || (row.dependencyDetails ?? []),
+    }));
+};
+
 export const listByUser = async (userId, { status, sort = 'priority', limit = 50, offset = 0 } = {}, client) => {
     const order = SORT[sort] || SORT.priority;
     const params = [userId];
@@ -54,7 +78,7 @@ export const listByUser = async (userId, { status, sort = 'priority', limit = 50
         `SELECT ${ROW} FROM tasks t WHERE ${where} ORDER BY ${order} LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params
     );
-    return attachDeps(r.rows, client);
+    return attachDepDetails(await attachDeps(r.rows, client), client);
 };
 
 export const countByUser = async (userId, { status } = {}, client) => {

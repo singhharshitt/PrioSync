@@ -3,6 +3,15 @@ import { X, Calendar, AlertCircle, Zap, Clock, Target, BarChart3, Check } from '
 
 const CATEGORIES = ['General', 'Work', 'Study', 'Personal', 'Health', 'Finance', 'Urgent'];
 
+/** ISO/UTC → local `datetime-local` value (YYYY-MM-DDTHH:mm), and back on submit. */
+const toDatetimeLocal = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+};
+
 /**
  * PinwheelIcon - Decorative spinning element
  */
@@ -86,7 +95,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
       setForm({
         title: initialData.title || '',
         description: initialData.description || '',
-        deadline: initialData.deadline ? new Date(initialData.deadline).toISOString().slice(0, 16) : '',
+        deadline: toDatetimeLocal(initialData.deadline),
         importance: initialData.importance || 3,
         urgency: initialData.urgency || 3,
         difficulty: initialData.difficulty || 3,
@@ -135,7 +144,8 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
     setError('');
     setSubmitting(true);
     try {
-      await onSubmit({ ...form });
+      // datetime-local values are local wall time; send UTC ISO to the API.
+      await onSubmit({ ...form, deadline: new Date(form.deadline).toISOString() });
       onClose();
     } catch {
       setError('Failed to save task. Please try again.');
@@ -148,10 +158,10 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#2B1B17]/90 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-[#2B1B17]/90 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[#2B1B17] border-2 border-[#FC703C]/20 shadow-2xl shadow-orange-900/30 animate-[modalPop_0.4s_ease-out]">
+      <div className="relative w-full sm:max-w-lg max-h-[92dvh] overflow-hidden rounded-t-3xl sm:rounded-2xl bg-[#2B1B17] border-2 border-b-0 sm:border-b-2 border-[#FC703C]/20 shadow-2xl shadow-orange-900/30 animate-[modalPop_0.4s_ease-out]">
 
         {/* Background Texture */}
         <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
@@ -179,14 +189,15 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-[#CCC4BE] hover:bg-[#FC703C]/20 hover:text-[#FC703C] transition-all duration-200 hover:rotate-90"
+            aria-label="Close"
+            className="touch-target p-2 rounded-xl text-[#CCC4BE] hover:bg-[#FC703C]/20 hover:text-[#FC703C] transition-all duration-200 hover:rotate-90 flex items-center justify-center"
           >
             <X size={20} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSubmit} className="relative px-6 py-5 space-y-5 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <form onSubmit={handleSubmit} className="relative px-4 sm:px-6 py-5 space-y-5 overflow-y-auto max-h-[calc(92dvh-140px)]">
 
           {/* Error Alert */}
           {error && (
@@ -376,7 +387,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
           )}
 
           {/* Footer Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-2 safe-pad-bottom sm:pb-0">
             <button
               type="button"
               onClick={onClose}

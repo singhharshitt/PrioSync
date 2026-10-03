@@ -13,10 +13,21 @@ export const loginSchema = z.object({
 
 const uuid = z.string().uuid();
 
+/**
+ * Any JS-parseable datetime → canonical UTC ISO. Covers <input
+ * type="datetime-local"> values ("2026-10-05T14:30", no seconds/zone) that
+ * strict .datetime() rejects, plus ISO strings with offsets.
+ */
+const flexibleDateTime = z
+    .string()
+    .trim()
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Invalid date/time' })
+    .transform((v) => new Date(v).toISOString());
+
 export const taskCreateSchema = z.object({
     title: z.string().trim().min(1).max(150),
     description: z.string().max(2000).default(''),
-    deadline: z.string().datetime({ offset: true }).nullable().optional(),
+    deadline: flexibleDateTime.nullable().optional(),
     importance: z.number().int().min(1).max(5).default(3),
     urgency: z.number().int().min(1).max(5).default(3),
     difficulty: z.number().int().min(1).max(5).default(3),

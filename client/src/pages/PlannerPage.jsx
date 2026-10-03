@@ -6,7 +6,6 @@ import {
   AlertTriangle, Clock, ListChecks,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar.jsx';
-import V2SessionGate from '../components/V2SessionGate.jsx';
 import { v2Planner } from '../services/v2.js';
 
 const card = 'bg-[#2B1B17] rounded-3xl p-6 border border-[#FC703C]/10 text-white';
@@ -272,12 +271,10 @@ const PlannerFlow = () => {
 };
 
 const PlannerPage = () => (
-  <div className="flex h-screen overflow-hidden bg-[#f8f7f2] overflow-x-hidden">
+  <div className="flex h-dvh overflow-hidden bg-[#f8f7f2] overflow-x-hidden">
     <Sidebar />
     <main className="flex-1 overflow-y-auto">
-      <V2SessionGate>
-        <PlannerFlow />
-      </V2SessionGate>
+      <PlannerFlow />
     </main>
   </div>
 );

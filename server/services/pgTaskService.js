@@ -26,6 +26,7 @@ export const presentTask = (row) => {
     const { priority_score, priority_tier, estimated_minutes, scheduled_start, scheduled_end,
         completed_at, created_at, updated_at, parent_task_id, project_id, goal_id,
         user_id, energy_fit, dependencyDetails, ...rest } = row;
+    const details = (dependencyDetails || []).map((d) => presentTask({ ...d, dependencies: [] }));
     return {
         ...rest,
         id: row.id,
@@ -43,10 +44,14 @@ export const presentTask = (row) => {
         completedAt: completed_at,
         createdAt: created_at,
         updatedAt: updated_at,
-        dependencies: (row.dependencies || []).map((d) =>
-            typeof d === 'object' && d !== null ? d.id || d._id : d
-        ),
-        dependencyDetails: (dependencyDetails || []).map((d) => presentTask({ ...d, dependencies: [] })),
+        // v1 populate() parity: populated objects when details are known,
+        // plain id strings otherwise (TaskCard renders `dep.title || dep`).
+        dependencies: details.length
+            ? details
+            : (row.dependencies || []).map((d) =>
+                  typeof d === 'object' && d !== null ? d.id || d._id : d
+              ),
+        dependencyDetails: details,
     };
 };
 
@@ -358,6 +363,9 @@ export const getStats = async (userId) => {
     const completionRate = counts.total > 0 ? Math.round((counts.completed / counts.total) * 100) : 0;
     const velocity = weekly.rows.reduce((a, r) => a + r.count, 0);
     const weeklyFocusMinutes = Math.round((focus.rows[0]?.secs || 0) / 60);
+    // Same formulas as v1 so the Dashboard renders identical numbers.
+    const completionSpeedScore = Math.min(100, Math.round((velocity / 7) * 100));
+    const focusScore = Math.round(completionRate * 0.6 + completionSpeedScore * 0.4);
     const productivityScore = Math.max(
         0,
         Math.min(
@@ -374,6 +382,7 @@ export const getStats = async (userId) => {
         overdue: overdue.rows[0].n,
         completionRate,
         productivityScore,
+        focusScore,
         streak,
         velocity,
         weeklyFocusMinutes,
@@ -397,7 +406,16 @@ export const getDAG = async (userId) => {
     const heap = new MaxHeap();
     for (const t of tasks.rows) heap.insert({ id: t.id, score: t.priority_score });
     void heap.peek();
-    return { nodes: tasks.rows, edges: edges.rows };
+    // v1-compatible camelCase node shape — DependencyGraph reads
+    // node.priorityScore / node.priorityTier.
+    const nodes = tasks.rows.map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priorityScore: t.priority_score,
+        priorityTier: t.priority_tier,
+    }));
+    return { nodes, edges: edges.rows };
 };
 
 // Re-export for callers that need raw batch scoring + breakdowns.

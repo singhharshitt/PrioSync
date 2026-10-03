@@ -1,0 +1,60 @@
+# Local production-parity stack: Postgres + Redis + API + web.
+# Uses LOCAL Postgres/Redis (not Neon) so the whole loop runs offline.
+# First run:  docker compose up --build
+# Apply schema: docker compose exec api node db/verify.js --apply
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: priosync
+      POSTGRES_PASSWORD: priosync
+      POSTGRES_DB: priosync
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U priosync -d priosync"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./server
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      POSTGRES_URI: postgresql://priosync:priosync@db:5432/priosync?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev_only_change_me}
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: http://localhost:8081
+    ports:
+      - "5000:5000"
+
+  web:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: http://localhost:5000/api
+    depends_on:
+      - api
+    ports:
+      - "8081:80"
+
+volumes:
+  pgdata:
+  redisdata:

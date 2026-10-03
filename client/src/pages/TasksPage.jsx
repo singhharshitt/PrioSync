@@ -118,7 +118,7 @@ const TasksPage = () => {
 
   return (
     <div className="min-h-screen bg-[#f8f7f2] bpmf-huninn-regular">
-      <div className="flex h-screen overflow-hidden overflow-x-hidden">
+      <div className="flex h-dvh overflow-hidden overflow-x-hidden">
         <Sidebar />
 
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -252,7 +252,7 @@ const TasksPage = () => {
                   </div>
 
                   {/* Status Filters */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide scroll-rail">
                     {STATUSES.map((status) => {
                       const Icon = status.icon;
                       const isActive = filterStatus === status.id;

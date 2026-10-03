@@ -557,6 +557,53 @@ body,
   }
 }
 
+/* ==================== MOBILE FOUNDATION ==================== */
+
+/* Remove gray tap flash; use dynamic viewport so mobile chrome doesn't clip */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+html {
+  overscroll-behavior-y: none;
+}
+
+/* Notch-aware offsets for fixed chrome (hamburger, sync pill) */
+.safe-top {
+  top: max(1rem, env(safe-area-inset-top));
+}
+.safe-bottom {
+  bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.safe-pad-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* iOS Safari auto-zooms on focus when inputs are <16px — keep 16px on touch */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* 40px minimum touch targets on coarse pointers (mobile), desktop untouched */
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* Momentum scrolling for horizontal chip/graph rails */
+.scroll-rail {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
 @media (prefers-reduced-motion: reduce) {
 
   *,

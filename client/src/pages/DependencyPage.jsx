@@ -28,7 +28,7 @@ const DependencyPage = () => {
   const edgeCount = dagData?.edges?.length || 0;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular">
+    <div className="flex h-dvh overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular">
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">

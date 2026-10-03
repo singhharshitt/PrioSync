@@ -3,6 +3,7 @@
  * without Redis, the SAME handler runs inline so behavior never silently differs.
  */
 import { Queue } from 'bullmq';
+import logger from '../utils/logger.js';
 import { bullConnection, isRedisReady } from '../cache/redisClient.js';
 import { runRecalc } from './workers.js';
 
@@ -18,6 +19,7 @@ const getQueue = () => {
 export const enqueueRecalc = async (userId) => {
     const q = getQueue();
     if (!q) {
+        logger.info({ userId }, 'no Redis — recalc running inline');
         const result = await runRecalc({ userId });
         return { queued: false, ranInline: true, result };
     }
@@ -29,7 +31,7 @@ export const enqueueRecalc = async (userId) => {
         );
         return { queued: true, jobId: job.id };
     } catch (err) {
-        console.error(`enqueue failed, running inline: ${err.message}`);
+        logger.warn({ err, userId }, 'enqueue failed, running inline');
         const result = await runRecalc({ userId });
         return { queued: false, ranInline: true, result };
     }

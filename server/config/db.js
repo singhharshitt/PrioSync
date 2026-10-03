@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import logger from '../utils/logger.js';
 
 export const isDatabaseReady = () => mongoose.connection.readyState === 1;
 
@@ -15,22 +16,44 @@ const connectDB = async () => {
     retryWrites: true,                 // Retry failed writes
   });
 
-  console.log(`MongoDB connected: ${conn.connection.host}`);
+  logger.info({ host: conn.connection.host }, 'MongoDB connected.');
   return conn;
 };
 
-// Log connection events for debugging
+/*
+ * State-transition logging only. Mongoose emits disconnected/error on EVERY
+ * failed retry attempt — logging them unconditionally floods the console
+ * (one error block per retry). We log the first failure of an outage, stay
+ * silent while the state is unchanged, and log recovery.
+ */
+let inOutage = false;
+let lastErrorMessage = null;
+
 mongoose.connection.on('disconnected', () => {
-  console.warn('MongoDB disconnected. Mongoose will auto-reconnect...');
+  if (inOutage) return;
+  inOutage = true;
+  logger.warn('MongoDB disconnected - retrying with backoff (v1 routes unavailable until it returns).');
 });
 
-mongoose.connection.on('reconnected', () => {
-  console.log('MongoDB reconnected successfully.');
+const markConnected = () => {
+  inOutage = false;
+  lastErrorMessage = null;
+  logger.info('MongoDB reconnected.');
+};
+
+mongoose.connection.on('reconnected', markConnected);
+// Initial successful connect emits 'connected' (not 'reconnected') — clear the
+// outage flag either way so a later disconnect logs again.
+mongoose.connection.on('connected', () => {
+  if (inOutage) markConnected();
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error(`MongoDB connection error: ${err.message}`);
+  // Retries are already reported once per outage by index.js backoff logic;
+  // keep per-attempt detail out of the console (visible with LOG_LEVEL=debug).
+  if (err?.message === lastErrorMessage) return;
+  lastErrorMessage = err?.message || 'unknown error';
+  logger.debug({ err }, 'MongoDB connection error');
 });
 
 export default connectDB;
-

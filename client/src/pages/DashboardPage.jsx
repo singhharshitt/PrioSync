@@ -324,19 +324,20 @@ const DashboardPage = () => {
   const velocity = stats?.velocity || 0;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular overflow-x-hidden">
+    <div className="flex h-dvh overflow-hidden bg-[#f8f7f2] bpmf-huninn-regular overflow-x-hidden">
       <Sidebar />
 
       <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden relative">
         {/* Real-time indicator */}
-        <div className="fixed top-4 right-4 z-40 flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-[#2B1B17]/90 backdrop-blur-sm rounded-full border border-[#FC703C]/20 text-xs">
+        <div className="fixed safe-top right-4 z-40 flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-[#2B1B17]/90 backdrop-blur-sm rounded-full border border-[#FC703C]/20 text-xs">
           <div className={`w-2 h-2 rounded-full ${isRefreshing ? 'bg-[#FC703C] animate-pulse' : 'bg-green-500'}`} />
           <span className="text-[#CCC4BE] font-medium hidden sm:inline">
             {isRefreshing ? 'Syncing...' : `Updated ${lastUpdated.toLocaleTimeString()}`}
           </span>
           <button
             onClick={refreshData}
-            className={`p-1 hover:text-[#FC703C] transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+            aria-label="Refresh data"
+            className={`touch-target p-2 hover:text-[#FC703C] transition-colors flex items-center justify-center ${isRefreshing ? 'animate-spin' : ''}`}
           >
             <RefreshCw size={12} />
           </button>

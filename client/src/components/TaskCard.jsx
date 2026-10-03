@@ -165,22 +165,25 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
           `}>
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="p-2 rounded-xl text-[#CCC4BE] hover:bg-[#FC703C]/20 hover:text-[#FC703C] transition-all duration-200 hover:scale-110"
+              className="touch-target p-2 rounded-xl text-[#CCC4BE] hover:bg-[#FC703C]/20 hover:text-[#FC703C] transition-all duration-200 hover:scale-110 flex items-center justify-center"
               title={expanded ? 'Collapse' : 'Expand'}
+              aria-label={expanded ? 'Collapse' : 'Expand'}
             >
               {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
             <button
               onClick={() => onEdit?.(task)}
-              className="p-2 rounded-xl text-[#CCC4BE] hover:bg-[#FC703C]/20 hover:text-[#FC703C] transition-all duration-200 hover:scale-110"
+              className="touch-target p-2 rounded-xl text-[#CCC4BE] hover:bg-[#FC703C]/20 hover:text-[#FC703C] transition-all duration-200 hover:scale-110 flex items-center justify-center"
               title="Edit"
+              aria-label="Edit task"
             >
               <Edit2 size={18} />
             </button>
             <button
               onClick={() => taskId && onDelete?.(taskId)}
-              className="p-2 rounded-xl text-[#CCC4BE] hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 hover:scale-110"
+              className="touch-target p-2 rounded-xl text-[#CCC4BE] hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 hover:scale-110 flex items-center justify-center"
               title="Delete"
+              aria-label="Delete task"
             >
               <Trash2 size={18} />
             </button>

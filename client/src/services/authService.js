@@ -2,7 +2,7 @@ import httpClient, { TOKEN_STORAGE_KEY, setAuthToken } from '../api/httpClient.j
 
 const authService = {
   async register(payload) {
-    const { data } = await httpClient.post('/auth/register', payload);
+    const { data } = await httpClient.post('/v2/auth/register', payload);
     if (data?.token) {
       setAuthToken(data.token);
     }
@@ -10,7 +10,7 @@ const authService = {
   },
 
   async login(payload) {
-    const { data } = await httpClient.post('/auth/login', payload);
+    const { data } = await httpClient.post('/v2/auth/login', payload);
     if (data?.token) {
       setAuthToken(data.token);
     }
@@ -18,12 +18,12 @@ const authService = {
   },
 
   async getMe() {
-    const { data } = await httpClient.get('/auth/me');
+    const { data } = await httpClient.get('/v2/auth/me');
     return data;
   },
 
   async updateProfile(payload) {
-    return httpClient.put('/auth/profile', payload);
+    return httpClient.put('/v2/auth/profile', payload);
   },
 
   logout() {

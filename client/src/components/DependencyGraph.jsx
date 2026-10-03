@@ -105,8 +105,10 @@ const DependencyGraph = ({ graph }) => {
 
   return (
     <div className="w-full">
-      {/* Graph Container with Retro Shadow */}
-      <div className="relative bg-[#2B1B17] rounded-2xl p-4 shadow-[4px_4px_0_#452215] overflow-hidden">
+      <p className="sm:hidden text-xs font-bold text-[#2B1B17]/40 mb-2">Swipe sideways to explore →</p>
+      {/* Graph Container with Retro Shadow — horizontal rail on small screens */}
+      <div className="overflow-x-auto scroll-rail rounded-2xl">
+      <div className="relative bg-[#2B1B17] rounded-2xl p-4 shadow-[4px_4px_0_#452215] overflow-hidden min-w-[600px] sm:min-w-0">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.3) 1px, transparent 0)`,
@@ -115,7 +117,7 @@ const DependencyGraph = ({ graph }) => {
         
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="w-full min-w-[600px] relative z-10"
+          className="w-full relative z-10"
           style={{ minHeight: 320 }}
         >
           <defs>
@@ -206,10 +208,11 @@ const DependencyGraph = ({ graph }) => {
             const label = node.title?.length > 12 ? `${node.title.slice(0, 11)}...` : node.title;
 
             return (
-              <g 
+              <g
                 key={node.id}
                 onMouseEnter={() => setHoveredNode(node.id)}
                 onMouseLeave={() => setHoveredNode(null)}
+                onClick={() => setHoveredNode((h) => (h === node.id ? null : node.id))}
                 style={{ cursor: 'pointer' }}
                 opacity={isDimmed ? 0.4 : 1}
               >
@@ -293,6 +296,7 @@ const DependencyGraph = ({ graph }) => {
             );
           })}
         </svg>
+      </div>
       </div>
 
       {/* Legend */}

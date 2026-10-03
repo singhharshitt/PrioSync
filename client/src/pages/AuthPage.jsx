@@ -116,7 +116,7 @@ const AuthPage = () => {
   const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500'];
 
   return (
-    <div className="h-screen bg-[#f8f7f2] relative overflow-hidden flex items-center justify-center px-4">
+    <div className="h-dvh bg-[#f8f7f2] relative overflow-hidden flex items-center justify-center px-4">
       
       {/* Animated Background Elements - GSAP Style */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
