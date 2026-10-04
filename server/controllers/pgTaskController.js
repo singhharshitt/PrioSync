@@ -2,6 +2,7 @@ import { getPool } from '../db/pgClient.js';
 import * as Tasks from '../repositories/pgTasks.js';
 import * as Sessions from '../repositories/pgSessions.js';
 import * as Svc from '../services/pgTaskService.js';
+import * as InsightSvc from '../services/insightService.js';
 import { readThrough, bustUser } from '../cache/taskCache.js';
 import { enqueueRecalc } from '../jobs/dispatch.js';
 
@@ -145,7 +146,7 @@ export const getDAG = async (req, res, next) => {
 
 export const getExplain = async (req, res, next) => {
     try {
-        const explanation = await Svc.explainPriority(req.user.id, req.params.id);
+        const explanation = await InsightSvc.explainTask(req.user.id, req.params.id);
         if (!explanation) return res.status(404).json({ success: false, message: 'Task not found.' });
         res.json({ success: true, explanation });
     } catch (e) {

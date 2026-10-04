@@ -116,6 +116,29 @@ CREATE INDEX ix_events_user_time ON task_events(user_id, created_at DESC);
   `.env.example`) — it absorbs wake churn and connection fan-out better than
   the direct endpoint for a pooled app server.
 
+## Planning intelligence storage (Phase 1: none new)
+The risk/critical-path/bottleneck/capacity/simulation engines are stateless:
+they read `tasks`, `task_dependencies`, `work_sessions`, and
+`user_preferences`, and return computed views. No snapshots, no new tables.
+If read load ever justifies it, the honest next step is a
+`planning_risk_snapshots` table fed by the BullMQ recalc worker - not ad-hoc
+caching. Plan versions and the decision-relevant events (`TASK_RESCHEDULED`,
+`PLAN_UPDATED`, `RECOMMENDATION_*`) already persist in `plan_versions` /
+`task_events`, which is what the v1-v2 plan history UI reads.
+
+## Phase 3 columns (migration 001)
+
+Two nullable-by-design column sets, both `NOT NULL ... DEFAULT` so existing
+rows are unaffected, enforced by CHECKs added under guards:
+
+- `user_preferences`: `energy_morning` (default high), `energy_afternoon`
+  (normal), `energy_evening` (low) - the user's daily rhythm.
+- `tasks`: `commitment_type` (default personal: personal/team/client/
+  academic/deadline), `stakeholder` (default '').
+
+Applied with `node db/migrate.js` (ledger in `schema_migrations`,
+re-runnable). `schema.sql` carries the same columns for fresh installs.
+
 ## Migration runbook (Mongo → Postgres)
 
 Script: `server/db/migrate-mongo-to-postgres.js` — idempotent

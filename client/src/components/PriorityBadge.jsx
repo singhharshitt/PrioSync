@@ -1,4 +1,4 @@
-import { Zap, AlertCircle, Target, Circle } from 'lucide-react';
+import PrioIcon from './icons/PrioIcon.jsx';
 
 /**
  * PriorityBadge - displays score (0-100) with color-coded tier label
@@ -11,7 +11,7 @@ const tierConfig = {
     color: '#ef4444',
     bg: 'bg-red-50',
     border: 'border-red-200',
-    icon: AlertCircle,
+    icon: 'alert-circle',
     shadow: '#7f1d1d'
   },
   high: { 
@@ -19,7 +19,7 @@ const tierConfig = {
     color: '#FC703C',
     bg: 'bg-orange-50',
     border: 'border-orange-200',
-    icon: Zap,
+    icon: 'energy',
     shadow: '#9a3412'
   },
   medium: { 
@@ -27,7 +27,7 @@ const tierConfig = {
     color: '#eab308',
     bg: 'bg-yellow-50',
     border: 'border-yellow-200',
-    icon: Target,
+    icon: 'target',
     shadow: '#854d0e'
   },
   low: { 
@@ -35,14 +35,13 @@ const tierConfig = {
     color: '#22c55e',
     bg: 'bg-green-50',
     border: 'border-green-200',
-    icon: Circle,
+    icon: 'circle',
     shadow: '#166534'
   },
 };
 
 const PriorityBadge = ({ score = 0, tier = 'medium', showScore = true, size = 'md' }) => {
   const config = tierConfig[tier] || tierConfig.medium;
-  const Icon = config.icon;
 
   const sizeClasses = {
     sm: 'px-2 py-0.5 text-[10px] gap-1',
@@ -68,7 +67,8 @@ const PriorityBadge = ({ score = 0, tier = 'medium', showScore = true, size = 'm
       `}
       style={{ color: config.color }}
     >
-      <Icon 
+      <PrioIcon
+        name={config.icon}
         size={iconSizes[size]} 
         className={tier === 'critical' ? 'animate-pulse' : ''} 
       />

@@ -1,9 +1,5 @@
 import { Link } from 'react-router-dom';
-import {
-  Zap, Target, BarChart2, GitBranch, ArrowRight,
-  CheckCircle, Github, Twitter, Linkedin, Clock,
-  Calendar, TrendingUp, Shield
-} from 'lucide-react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 import { useEffect, useRef } from 'react';
 
 const LandingPage = () => {
@@ -40,28 +36,28 @@ const LandingPage = () => {
 
   const features = [
     {
-      icon: Target,
+      icon: 'goal',
       title: 'Smart Priority Engine',
       desc: 'DSA-powered Max Heap calculates real-time 0–100 priority scores using urgency, importance, and deadlines.',
       stat: 'O(1)',
       statLabel: 'Access Time'
     },
     {
-      icon: GitBranch,
+      icon: 'dependency',
       title: 'Dependency Graph',
       desc: 'Visualize task dependencies as a directed acyclic graph with topological ordering and cycle detection.',
       stat: 'DAG',
       statLabel: 'Structure'
     },
     {
-      icon: BarChart2,
+      icon: 'analytics',
       title: 'Analytics Dashboard',
       desc: 'Visual charts for completion rates, priority distribution, and weekly productivity trends.',
       stat: '98%',
       statLabel: 'Accuracy'
     },
     {
-      icon: Zap,
+      icon: 'energy',
       title: 'Greedy Scheduling',
       desc: 'Automatic task ordering using greedy algorithm - always work on the highest-impact tasks first.',
       stat: '2.4x',
@@ -223,7 +219,7 @@ const LandingPage = () => {
               className="group inline-flex items-center gap-3 px-8 py-4 bg-[#FC703C] text-white rounded-full font-medium hover:bg-[#E85C2A] transition-all hover:scale-105 hover:shadow-xl whitespace-nowrap"
             >
               Get PrioSync
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <PrioIcon name="arrow-right" className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
@@ -273,7 +269,7 @@ const LandingPage = () => {
               <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100 max-w-xs">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-[#FC703C]/10 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-[#FC703C]" />
+                    <PrioIcon name="energy" className="w-5 h-5 text-[#FC703C]" />
                   </div>
                   <span className="font-semibold text-[#2B1B17]">Nice and</span>
                 </div>
@@ -342,7 +338,7 @@ const LandingPage = () => {
                 <div className="w-48 h-48 mx-auto relative">
                   <div className="absolute inset-0 bg-gradient-to-br from-[#FC703C] to-[#EEA175] rounded-3xl opacity-20 blur-xl" />
                   <div className="w-full h-full bg-gradient-to-br from-[#FC703C] to-[#EEA175] rounded-3xl flex items-center justify-center">
-                    <GitBranch className="w-16 h-16 text-white" />
+                    <PrioIcon name="dependency" className="w-16 h-16 text-white" />
                   </div>
                 </div>
               </div>
@@ -359,7 +355,7 @@ const LandingPage = () => {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="order-2 md:order-1">
                 <h3 className="text-4xl md:text-5xl font-bold text-[#2B1B17] mb-4">Priority</h3>
-                <p className="text-xl text-[#4A3A36] mb-6">Leave them lost for words with seamless priority scoring.</p>
+                <p className="text-xl text-[#4A3A36] mb-6">Every task scores 0-100 from urgency, importance, deadline pressure, and difficulty - and shows exactly which factor contributed what.</p>
                 <Link to="/features/priority" className="inline-flex items-center gap-2 px-6 py-3 border-2 border-[#2B1B17] rounded-full text-[#2B1B17] font-medium hover:bg-[#2B1B17] hover:text-white transition-all">
                   Explore Priority
                 </Link>
@@ -405,7 +401,7 @@ const LandingPage = () => {
                   className="group inline-flex items-center gap-2 px-8 py-4 bg-[#FC703C] text-white rounded-full font-medium hover:bg-[#E85C2A] transition-all hover:scale-105 hover:shadow-xl"
                 >
                   Start Prioritizing
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <PrioIcon name="arrow-right" className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
             </div>
@@ -452,7 +448,7 @@ const LandingPage = () => {
                           </span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-gray-400">
-                          <Clock size={12} />
+                          <PrioIcon name="clock" size={12} />
                           {task.time}
                         </div>
                       </div>
@@ -463,7 +459,7 @@ const LandingPage = () => {
                       <p className="text-sm text-gray-500 mb-3">{task.desc}</p>
 
                       <div className="flex items-center gap-2 text-xs text-gray-400">
-                        <Calendar size={12} />
+                        <PrioIcon name="calendar" size={12} />
                         <span>Due {task.deadline}</span>
                       </div>
                     </div>
@@ -514,7 +510,7 @@ const LandingPage = () => {
                 {/* Badge */}
                 <div className="absolute top-6 left-6">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-semibold text-white/90">
-                    <feature.icon size={12} />
+                    <PrioIcon name={feature.icon} size={12} />
                     {feature.stat}
                   </span>
                 </div>
@@ -564,7 +560,7 @@ const LandingPage = () => {
           {/* Left Content */}
           <div className="order-2 lg:order-1">
             <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#EEA175]/30 text-[#2B1B17] rounded-full text-sm font-medium mb-6">
-              <TrendingUp size={16} />
+              <PrioIcon name="trending-up" size={16} />
               Smart Analytics
             </span>
 
@@ -586,7 +582,7 @@ const LandingPage = () => {
               ].map((item) => (
                 <li key={item} className="flex items-center gap-3 text-gray-700">
                   <div className="w-5 h-5 rounded-full bg-[#EEA175]/30 flex items-center justify-center">
-                    <CheckCircle size={12} className="text-[#2B1B17]" />
+                    <PrioIcon name="circle-check" size={12} className="text-[#2B1B17]" />
                   </div>
                   {item}
                 </li>
@@ -598,7 +594,7 @@ const LandingPage = () => {
               className="group inline-flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-white rounded-full font-medium hover:bg-[#E85C2A] transition-all hover:scale-105"
             >
               View Dashboard
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <PrioIcon name="arrow-right" className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
@@ -657,7 +653,7 @@ const LandingPage = () => {
 
         <div className="relative max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm text-white/80 mb-8">
-            <Shield size={16} />
+            <PrioIcon name="shield" size={16} />
             Distraction-Free Environment
           </div>
 
@@ -673,7 +669,7 @@ const LandingPage = () => {
           </p>
 
           <button className="group inline-flex items-center gap-3 px-10 py-5 bg-white text-[#2B1B17] rounded-full font-semibold text-lg hover:bg-[#f8f7f2] transition-all hover:scale-105 shadow-2xl">
-            <Zap className="w-5 h-5" />
+            <PrioIcon name="energy" className="w-5 h-5" />
             Enter Focus Mode
           </button>
         </div>
@@ -693,7 +689,7 @@ const LandingPage = () => {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#FC703C] text-white rounded-full font-medium hover:bg-[#E85C2A] transition-all hover:scale-105 hover:shadow-xl"
             >
               Create Free Account
-              <ArrowRight className="w-4 h-4" />
+              <PrioIcon name="arrow-right" className="w-4 h-4" />
             </Link>
           </div>
 
@@ -768,13 +764,13 @@ const LandingPage = () => {
             </p>
             <div className="flex items-center gap-4">
               <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-                <Twitter size={18} />
+                <PrioIcon name="twitter" size={18} />
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-                <Github size={18} />
+                <PrioIcon name="github" size={18} />
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-                <Linkedin size={18} />
+                <PrioIcon name="linkedin" size={18} />
               </a>
             </div>
           </div>

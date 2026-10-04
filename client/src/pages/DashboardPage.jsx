@@ -1,12 +1,7 @@
-import { createElement, useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import {
-  Plus, Clock, TrendingUp, Zap, Target,
-  BarChart3, CheckCircle2, AlertCircle,
-  ArrowRight, Sparkles, Activity,
-  Flame, Trophy, Brain, ChevronRight, RefreshCw
-} from 'lucide-react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import TaskCard from '../components/TaskCard.jsx';
 import TaskModal from '../components/TaskModal.jsx';
@@ -16,6 +11,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import LoadingSkeleton, { ChartSkeleton } from '../components/LoadingSkeleton.jsx';
 import useTasks from '../hooks/useTasks.js';
 import taskService from '../services/taskService.js';
+import insightsService from '../services/insights.js';
 
 // Real-time hook for live updates
 const useRealtime = (callback, interval = 30000) => {
@@ -56,7 +52,7 @@ const Stat = ({ value, label, icon, color = "text-[#FC703C]", trend, onClick }) 
     <div className="relative flex items-start justify-between">
       <div>
         <div className={`w-12 h-12 rounded-xl bg-[#231612] border border-[#FC703C]/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-          {createElement(icon, { className: `w-6 h-6 ${color}` })}
+          {<PrioIcon name={icon} className={`w-6 h-6 ${color}`} />}
         </div>
         <div className="flex items-baseline gap-2">
           <p className="text-3xl font-black text-[#FDF8F0] tracking-tight">{value}</p>
@@ -79,15 +75,14 @@ const Stat = ({ value, label, icon, color = "text-[#FC703C]", trend, onClick }) 
   </div>
 );
 
-const PerformanceInsight = ({ title, value, max, color, icon, description }) => {
-  const percentage = Math.min((value / max) * 100, 100);
+const PerformanceInsight = ({ title, value, max, color, icon, description }) => {  const percentage = Math.min((value / max) * 100, 100);
 
   return (
     <div className="bg-[#231612] rounded-xl p-4 border border-[#FC703C]/10 hover:border-[#FC703C]/30 transition-all duration-300 group">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-[#FC703C]/10">
-            {createElement(icon, { size: 14, className: 'text-[#FC703C]' })}
+            {<PrioIcon name={icon} size={14} className="text-[#FC703C]" />}
           </div>
           <span className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">{title}</span>
         </div>
@@ -111,6 +106,100 @@ const PerformanceInsight = ({ title, value, max, color, icon, description }) => 
   );
 };
 
+const RISK_STYLE = {
+  LOW: { chip: 'bg-green-500/15 text-green-400', dot: 'bg-green-400' },
+  MEDIUM: { chip: 'bg-yellow-500/15 text-yellow-300', dot: 'bg-yellow-400' },
+  HIGH: { chip: 'bg-orange-500/15 text-orange-400', dot: 'bg-orange-500' },
+  CRITICAL: { chip: 'bg-red-500/15 text-red-400', dot: 'bg-red-500' },
+};
+
+/**
+ * "Am I on track?" - three calm decision cards driven by the planning
+ * intelligence API (risk, bottleneck, capacity). Skeleton while loading,
+ * silent when the backend has no opinion (empty workload).
+ */
+const InsightStrip = ({ risk, bottlenecks, capacity, loading: loadingInsights }) => {
+  if (loadingInsights) {
+    return (
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 mt-6 relative z-30">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-28 bg-[#2B1B17]/40 rounded-3xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (!risk && !bottlenecks && !capacity) return null;
+
+  const level = risk?.riskLevel || 'LOW';
+  const style = RISK_STYLE[level] || RISK_STYLE.LOW;
+  const primary = bottlenecks?.primary || null;
+  const overloaded = capacity?.overloaded;
+
+  return (
+    <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 mt-6 relative z-30">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-[#2B1B17] rounded-3xl p-5 border border-[#FC703C]/10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">Deadline risk</span>
+            <span className={`text-xs font-black px-2.5 py-1 rounded-full ${style.chip}`}>
+              {level} {risk ? <span className="font-mono">{risk.riskScore}</span> : null}
+            </span>
+          </div>
+          <p className="text-sm text-white/70 leading-relaxed line-clamp-3">
+            {risk?.summary || 'No open work in scope.'}
+          </p>
+        </div>
+
+        <div className="bg-[#2B1B17] rounded-3xl p-5 border border-[#FC703C]/10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">Bottleneck</span>
+            {primary ? (
+              <Link to="/dependencies" className="text-xs font-bold text-[#FC703C] hover:text-[#ff855c]">
+                View graph
+              </Link>
+            ) : null}
+          </div>
+          {primary ? (
+            <p className="text-sm text-white/70 leading-relaxed line-clamp-3">
+              <span className="text-white font-bold">{primary.title}</span>
+              {' '}gates {primary.downstreamCount} task{primary.downstreamCount === 1 ? '' : 's'}{' '}
+              (<span className="font-mono">{(primary.downstreamMinutes / 60).toFixed(1)}h</span> downstream).
+            </p>
+          ) : (
+            <p className="text-sm text-white/70 leading-relaxed">No bottlenecks - work flows freely.</p>
+          )}
+        </div>
+
+        <div className="bg-[#2B1B17] rounded-3xl p-5 border border-[#FC703C]/10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">Capacity · 7 days</span>
+            <span className={`w-2.5 h-2.5 rounded-full ${overloaded ? 'bg-red-500' : 'bg-green-400'}`} />
+          </div>
+          {capacity ? (
+            <p className="text-sm text-white/70 leading-relaxed line-clamp-3">
+              {overloaded ? (
+                <>
+                  Over by <span className="font-mono text-red-400 font-bold">{(capacity.overloadMinutes / 60).toFixed(1)}h</span>.
+                  {' '}{capacity.options?.[0]?.detail || 'Move work out or extend the horizon.'}
+                </>
+              ) : (
+                <>
+                  <span className="font-mono text-green-400 font-bold">{(capacity.balanceMinutes / 60).toFixed(1)}h</span>
+                  {' '}of headroom in the next {capacity.days} days.
+                </>
+              )}
+            </p>
+          ) : (
+            <p className="text-sm text-white/70 leading-relaxed">Capacity looks fine.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DashboardPage = () => {
   const {
     tasks, topTasks, stats, loading,
@@ -129,7 +218,36 @@ const DashboardPage = () => {
   const [focusSessionSaving, setFocusSessionSaving] = useState(false);
   const [focusSessionTask, setFocusSessionTask] = useState(null);
   const [focusSessionSummary, setFocusSessionSummary] = useState(null);
+  const [insights, setInsights] = useState({ risk: null, bottlenecks: null, capacity: null });
+  const [insightsLoading, setInsightsLoading] = useState(true);
   const heroRef = useRef(null);
+
+  const insightsAtRef = useRef(0);
+  const fetchInsights = useCallback(async (force = false) => {
+    // Insights run heavier aggregations - background ticks reuse results
+    // younger than 3 minutes; mutations force a refresh (see handlers below).
+    if (!force && Date.now() - insightsAtRef.current < 180000) return;
+    insightsAtRef.current = Date.now();
+    setInsightsLoading(true);
+    try {
+      const [risk, bottlenecks, capacity] = await Promise.all([
+        insightsService.risk().catch(() => null),
+        insightsService.bottlenecks().catch(() => null),
+        insightsService.capacity().catch(() => null),
+      ]);
+      setInsights({
+        risk: risk?.risk || null,
+        bottlenecks: bottlenecks ? { primary: bottlenecks.primary } : null,
+        capacity: capacity?.capacity || null,
+      });
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInsights();
+  }, [fetchInsights]);
 
   // Real-time data refresh
   const refreshData = useCallback(async () => {
@@ -139,12 +257,13 @@ const DashboardPage = () => {
         fetchTasks({ limit: 100 }),
         fetchTopTasks(),
         fetchStats(),
+        fetchInsights(),
       ]);
       setLastUpdated(new Date());
     } finally {
       setIsRefreshing(false);
     }
-  }, [fetchTasks, fetchTopTasks, fetchStats]);
+  }, [fetchTasks, fetchTopTasks, fetchStats, fetchInsights]);
 
   useRealtime(refreshData, 30000); // Refresh every 30 seconds
 
@@ -205,6 +324,7 @@ const DashboardPage = () => {
     }
     if (!confirm('Delete this task?')) return;
     await deleteTask(id);
+    fetchInsights(true);
   };
 
   const handleStatusChange = async (id, status) => {
@@ -213,6 +333,7 @@ const DashboardPage = () => {
       return;
     }
     await updateTask(id, { status });
+    fetchInsights(true);
   };
 
   const handleSubmit = async (formData) => {
@@ -221,6 +342,7 @@ const DashboardPage = () => {
     } else {
       await createTask(formData);
     }
+    fetchInsights(true);
   };
 
   const activeFocusTask = useMemo(
@@ -339,7 +461,7 @@ const DashboardPage = () => {
             aria-label="Refresh data"
             className={`touch-target p-2 hover:text-[#FC703C] transition-colors flex items-center justify-center ${isRefreshing ? 'animate-spin' : ''}`}
           >
-            <RefreshCw size={12} />
+            <PrioIcon name="refresh" size={12} />
           </button>
         </div>
 
@@ -408,7 +530,7 @@ const DashboardPage = () => {
               className="group inline-flex items-center gap-3 px-8 py-4 bg-[#FC703C] text-white rounded-full font-bold text-lg shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all duration-150"
             >
               View All Tasks
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <PrioIcon name="arrow-right" className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
@@ -436,7 +558,7 @@ const DashboardPage = () => {
                         }`}>
                         {task.priorityScore}
                       </span>
-                      <CheckCircle2 className="w-5 h-5 text-[#2B1B17]/20 group-hover:text-[#FC703C] transition-colors" />
+                      <PrioIcon name="circle-check" className="w-5 h-5 text-[#2B1B17]/20 group-hover:text-[#FC703C] transition-colors" />
                     </div>
                     <h3 className="font-bold text-[#2B1B17] mb-1 line-clamp-1 group-hover:text-[#FC703C] transition-colors">
                       {task.title}
@@ -455,7 +577,7 @@ const DashboardPage = () => {
             <Stat
               value={`${completionRate}%`}
               label="Completion Rate"
-              icon={CheckCircle2}
+              icon="circle-check"
               color="text-green-500"
               trend={completionTrend}
               onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
@@ -463,19 +585,27 @@ const DashboardPage = () => {
             <Stat
               value={stats?.total || '0'}
               label="Total Tasks"
-              icon={Target}
+              icon="target"
               color="text-[#FC703C]"
               trend={stats ? Math.round((stats.inProgress / Math.max(stats.total, 1)) * 100) : 0}
             />
             <Stat
               value={stats?.overdue || '0'}
               label="Overdue"
-              icon={AlertCircle}
+              icon="alert-circle"
               color="text-red-500"
               trend={stats?.overdue > 0 ? -10 : 0}
             />
           </div>
         </div>
+
+        {/* Am I on track? - planning intelligence strip */}
+        <InsightStrip
+          risk={insights.risk}
+          bottlenecks={insights.bottlenecks}
+          capacity={insights.capacity}
+          loading={insightsLoading}
+        />
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 py-12 space-y-12">
@@ -496,9 +626,9 @@ const DashboardPage = () => {
                 onClick={refreshData}
                 className="text-[#FC703C] hover:text-[#E85C2A] font-bold text-sm flex items-center gap-2 group px-4 py-2 rounded-xl hover:bg-[#FC703C]/10 transition-all"
               >
-                <RefreshCw size={16} className={`${isRefreshing ? 'animate-spin' : ''}`} />
+                <PrioIcon name="refresh" size={16} className={`${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh Data
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <PrioIcon name="chevron-right" className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
 
@@ -546,14 +676,14 @@ const DashboardPage = () => {
 
                 <div className="relative z-10 flex-1">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FC703C]/20 rounded-full text-xs font-black tracking-wider mb-5 backdrop-blur-sm border border-[#FC703C]/30">
-                    <Sparkles size={12} className="text-[#FC703C]" />
+                      <PrioIcon name="sparkles" size={12} className="text-[#FC703C]" />
                     AI INSIGHT
                   </div>
 
                   <div className="mb-6">
                     <h3 className="text-2xl font-black mb-2 flex items-center gap-2">
                       You're on fire!
-                      <Flame size={24} className="text-[#FC703C] animate-pulse" />
+                      <PrioIcon name="flame" size={24} className="text-[#FC703C] animate-pulse" />
                     </h3>
                     <p className="text-[#CCC4BE] text-sm leading-relaxed">
                       Focus score is <span className="text-[#FC703C] font-bold font-mono">{focusScore}</span> with a{' '}
@@ -569,7 +699,7 @@ const DashboardPage = () => {
                       value={focusScore}
                       max={100}
                       color="#FC703C"
-                      icon={Brain}
+                      icon="brain"
                       description="Based on task completion speed and completion ratio"
                     />
                     <PerformanceInsight
@@ -577,7 +707,7 @@ const DashboardPage = () => {
                       value={streak}
                       max={30}
                       color="#22C55E"
-                      icon={Trophy}
+                      icon="trophy"
                       description="Consecutive days with completed tasks"
                     />
                     <PerformanceInsight
@@ -585,7 +715,7 @@ const DashboardPage = () => {
                       value={velocity}
                       max={50}
                       color="#3B82F6"
-                      icon={Zap}
+                      icon="energy"
                       description="Tasks completed in the last 7 days"
                     />
                   </div>
@@ -611,7 +741,7 @@ const DashboardPage = () => {
 
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-[#FC703C]/20 flex items-center justify-center border border-[#FC703C]/30 backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-                <Clock size={28} className="text-[#FC703C]" />
+                <PrioIcon name="clock" size={28} className="text-[#FC703C]" />
               </div>
               <div>
                 <h2 className="text-3xl sm:text-4xl font-black mb-3 tracking-tight">Deep Work Awaits</h2>
@@ -624,7 +754,7 @@ const DashboardPage = () => {
                 disabled={focusSessionSaving}
                 className="px-6 sm:px-8 py-3 sm:py-4 bg-[#FC703C] text-white font-black text-base sm:text-lg rounded-full hover:bg-[#E85C2A] transition-all shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 inline-flex items-center gap-2 uppercase tracking-wider disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <Zap size={20} className="fill-current" />
+                  <PrioIcon name="energy" size={20} className="fill-current" />
                 {focusSessionActive
                   ? `End Focus Session (${formatDuration(focusElapsedSeconds)})`
                   : focusSessionSaving
@@ -643,7 +773,7 @@ const DashboardPage = () => {
                   onClick={handleMarkFocusedTaskCompleted}
                   className="px-6 py-3 bg-white text-[#2B1B17] font-black text-sm rounded-full hover:bg-[#f3ede4] transition-all shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 inline-flex items-center gap-2 uppercase tracking-wider"
                 >
-                  <CheckCircle2 size={18} />
+                    <PrioIcon name="circle-check" size={18} />
                   Mark as Completed
                 </button>
               )}
@@ -655,7 +785,7 @@ const DashboardPage = () => {
             <div className="flex items-center justify-between flex-wrap gap-3 mb-6 pb-6 border-b border-[#2B1B17]/5">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-[#FC703C]/10">
-                  <BarChart3 size={20} className="text-[#FC703C]" />
+                  <PrioIcon name="chart-bar" size={20} className="text-[#FC703C]" />
                 </div>
                 <div>
                   <span className="text-xs uppercase tracking-widest text-[#2B1B17]/40 font-black block">{`{ Tasks }`}</span>
@@ -666,7 +796,7 @@ const DashboardPage = () => {
                 onClick={handleOpenCreate}
                 className="flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-white font-bold rounded-full hover:bg-[#E85C2A] transition-all shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 uppercase tracking-wider text-sm"
               >
-                <Plus size={18} /> New Task
+                    <PrioIcon name="plus" size={18} /> New Task
               </button>
             </div>
 
@@ -695,7 +825,7 @@ const DashboardPage = () => {
                     onClick={handleOpenCreate}
                     className="flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-white font-bold rounded-full hover:bg-[#E85C2A] transition-all shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215]"
                   >
-                    <Plus size={15} /> Create Task
+                      <PrioIcon name="plus" size={15} /> Create Task
                   </button>
                 )}
               />

@@ -199,6 +199,12 @@ export const assessDeadlineRisk = (
         loadPoints + blockedPoints + overduePoints + focusPoints
     );
     let riskLevel = levelFor(riskScore);
+    if (overdue.length > 0 && riskScore < 30) {
+        // A missed deadline means the plan already broke somewhere - floor at
+        // MEDIUM regardless of how comfortable remaining capacity looks.
+        riskScore = 30;
+        riskLevel = 'MEDIUM';
+    }
     if (!scopeDeadline && (riskLevel === 'HIGH' || riskLevel === 'CRITICAL')) {
         riskLevel = 'MEDIUM'; // No deadline pressure: cap the alarm.
         riskScore = Math.min(riskScore, 54);

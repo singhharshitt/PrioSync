@@ -1,7 +1,7 @@
 import {
     ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
 } from 'recharts';
-import { Target, CheckCircle2, Sparkles } from 'lucide-react';
+import PrioIcon from './icons/PrioIcon.jsx';
 
 const TIER_COLORS = {
     critical: '#ef4444',
@@ -51,7 +51,7 @@ const CompletionChart = ({ byTier = {}, byStatus = {} }) => {
             <div className="bg-white rounded-2xl p-5 border border-[#2B1B17]/5 shadow-[2px_2px_0_#452215]/30 hover:shadow-[4px_4px_0_#452215]/40 hover:-translate-y-0.5 transition-all duration-200">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl bg-[#FC703C]/10 flex items-center justify-center">
-                        <Target className="w-5 h-5 text-[#FC703C]" />
+                        <PrioIcon name="target" className="w-5 h-5 text-[#FC703C]" />
                     </div>
                     <div>
                         <h3 className="font-bold text-[#2B1B17]">By Priority Tier</h3>
@@ -106,7 +106,7 @@ const CompletionChart = ({ byTier = {}, byStatus = {} }) => {
                 ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                         <div className="w-16 h-16 rounded-full bg-[#f8f7f2] flex items-center justify-center mb-3">
-                            <Target className="w-8 h-8 text-[#2B1B17]/20" />
+                            <PrioIcon name="target" className="w-8 h-8 text-[#2B1B17]/20" />
                         </div>
                         <p className="text-sm text-[#2B1B17]/40">No data yet</p>
                         <p className="text-xs text-[#2B1B17]/30 mt-1">Create tasks to see distribution</p>
@@ -118,7 +118,7 @@ const CompletionChart = ({ byTier = {}, byStatus = {} }) => {
             <div className="bg-white rounded-2xl p-5 border border-[#2B1B17]/5 shadow-[2px_2px_0_#452215]/30 hover:shadow-[4px_4px_0_#452215]/40 hover:-translate-y-0.5 transition-all duration-200">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl bg-[#EEA175]/10 flex items-center justify-center">
-                        <CheckCircle2 className="w-5 h-5 text-[#EEA175]" />
+                        <PrioIcon name="circle-check" className="w-5 h-5 text-[#EEA175]" />
                     </div>
                     <div>
                         <h3 className="font-bold text-[#2B1B17]">By Status</h3>
@@ -165,14 +165,14 @@ const CompletionChart = ({ byTier = {}, byStatus = {} }) => {
                         {/* Center Icon */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ top: '-18px' }}>
                             <div className="w-12 h-12 rounded-full bg-[#f8f7f2] flex items-center justify-center">
-                                <Sparkles className="w-6 h-6 text-[#FC703C]" />
+                                <PrioIcon name="sparkles" className="w-6 h-6 text-[#FC703C]" />
                             </div>
                         </div>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                         <div className="w-16 h-16 rounded-full bg-[#f8f7f2] flex items-center justify-center mb-3">
-                            <CheckCircle2 className="w-8 h-8 text-[#2B1B17]/20" />
+                            <PrioIcon name="circle-check" className="w-8 h-8 text-[#2B1B17]/20" />
                         </div>
                         <p className="text-sm text-[#2B1B17]/40">No data yet</p>
                         <p className="text-xs text-[#2B1B17]/30 mt-1">Start completing tasks</p>

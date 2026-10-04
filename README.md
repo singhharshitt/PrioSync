@@ -1,6 +1,9 @@
 # PrioSync — Turn chaos into your next move
 
 > **"You don't organize the chaos. PrioSync does."**
+>
+> PrioSync is an adaptive planning engine that continuously recalculates what
+> should happen next as real-world execution deviates from the original plan.
 
 PrioSync is an intelligent task planning and prioritization platform. Dump a messy
 goal — *"placement prep, SQL + DSA left, assessment next week"* — and PrioSync
@@ -77,6 +80,54 @@ The LLM **never** sets priority, writes to the DB directly, or schedules. It
 extracts; the engine decides. Without an `LLM_API_KEY`, a deterministic
 heuristic parser serves the same contract.
 
+## Planning intelligence (deterministic, explainable)
+
+Beyond raw priority scores, `/api/v2/insights/*` answers the decisions ordinary
+task managers punt on - all computed, all explainable, no LLM in the loop:
+
+- **Deadline risk** (`GET /risk`) - LOW/MEDIUM/HIGH/CRITICAL with a 0-100
+  score where every point traces to a named factor (load ratio, blocked work,
+  overdue items, downstream concentration, calibration state)
+- **Critical path + bottlenecks** (`GET /critical-path`, `/bottlenecks`) -
+  longest duration chain, ranked gates with downstream hours, blocked-work
+  ledger, delay-propagation primitive
+- **Capacity** (`GET /capacity`) - planned vs usable hours with four priced
+  relief options (move low-impact, extend deadline, raise capacity, cut scope)
+  returned as data, never applied silently
+- **What-if simulation** (`POST /simulate`) - move deadlines, drop tasks, or
+  change capacity on cloned rows; reports current vs scenario risk, affected
+  set, bottleneck shift, and a mitigation. Proven read-only by test.
+- **Explainable priority** - every score ships a
+  `{factors, positiveFactors, negativeFactors, info, summary}` object
+  ("Deadline pressure (+25) drives this score…")
+- **Calibration** - actual ÷ estimated from timed focus sessions (min
+  3 samples, clamped 0.5-3x), feeding risk, capacity, and path durations
+- **Deviation detection** (`GET /insights/deviations`) - overruns, missed
+  deadlines, and near-term blocked work as evidence objects with severity
+- **Auto-replan proposals** (`POST /insights/auto-replan`) - top deviation
+  becomes a trigger, recovery moves are priced (risk before/after) and stored
+  as a PROPOSED plan version; applying stays an explicit user action with its
+  own version. Nothing is ever silently overwritten.
+- **Reality drift** (`GET /insights/drift`) - repeated postponement, chronic
+  per-category underestimation, fragmented sessions - each with evidence and
+  one concrete adjustment, never psychological claims
+- **Context-aware ordering** (`GET /insights/context-order`) - Kahn's algorithm
+  over dependencies balancing priority against switching cost (lambda-tuned)
+- **Energy-matched day plans** (`GET /insights/day-plan`) - work thirds mapped
+  to your rhythm (`PUT /preferences`), overflow listed not crammed
+- **Scope control** (`GET /insights/scope`) - original vs current, added /
+  removed / deadline moves with growth math, per goal or workload
+- **Commitments** - typed promises (team/client/academic/deadline + optional
+  stakeholder) with an at-risk listing (`GET /insights/commitments`)
+
+The Dashboard's "Am I on track?" strip (risk, bottleneck, capacity) and the
+Focus recommendation's score sentence are the UI surface. The Dependencies
+graph highlights the critical path (dashed ring) and the primary bottleneck
+(red ring + tag); task cards expand to show the factor bars behind their
+score; the Planner keeps an auditable plan history and a read-only what-if
+panel; Focus adds Skip/Snooze next to Start; Profile shows follow-through.
+See `docs/ARCHITECTURE.md` for the risk model and algorithms.
+
 ## Docs
 
 - `docs/ARCHITECTURE.md` — layers, flows, DSA engine, AI/deterministic split, tradeoffs, observed performance
@@ -87,9 +138,9 @@ heuristic parser serves the same contract.
 ## Stack
 
 **Server** (Node ≥20, ESM): Express 4, `pg` 8, Mongoose 8, BullMQ 5 + `ioredis` 5,
-Pino 9, Zod 3 (server) / 4 (client), Helmet 8, JWT + bcryptjs.
+Pino 9, Zod 3 (server), Helmet 8, JWT + bcryptjs.
 **Client:** React 19, Vite 7, Tailwind 4, React Router 7, Axios, Recharts,
-Framer Motion, `react-hot-toast`, `lucide-react`.
+`react-hot-toast`, locally vendored Tabler icons behind `PrioIcon`.
 **Infra:** Postgres 16 (Neon in prod, container locally), Redis 7 (optional),
 Docker + Compose, GitHub Actions CI (unit tests, lint, build).
 

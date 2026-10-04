@@ -1,7 +1,7 @@
 import {
     ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
-import { TrendingUp, Calendar } from 'lucide-react';
+import PrioIcon from './icons/PrioIcon.jsx';
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
@@ -22,7 +22,7 @@ const ProductivityChart = ({ data = [] }) => {
             <div className="bg-white rounded-2xl p-5 border border-[#2B1B17]/5 shadow-[2px_2px_0_#452215]/30">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl bg-[#FC703C]/10 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-[#FC703C]" />
+                        <PrioIcon name="trending-up" className="w-5 h-5 text-[#FC703C]" />
                     </div>
                     <div>
                         <h3 className="font-bold text-[#2B1B17]">Weekly Completions</h3>
@@ -45,12 +45,12 @@ const ProductivityChart = ({ data = [] }) => {
             <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[#FC703C]/10 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-[#FC703C]" />
+                        <PrioIcon name="trending-up" className="w-5 h-5 text-[#FC703C]" />
                     </div>
                     <div>
                         <h3 className="font-bold text-[#2B1B17]">Weekly Completions</h3>
                         <p className="text-xs text-[#2B1B17]/40 flex items-center gap-1">
-                            <Calendar size={10} />
+                            <PrioIcon name="calendar" size={10} />
                             Last 7 days
                         </p>
                     </div>

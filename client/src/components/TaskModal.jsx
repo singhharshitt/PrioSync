@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, AlertCircle, Zap, Clock, Target, BarChart3, Check } from 'lucide-react';
+import PrioIcon from './icons/PrioIcon.jsx';
 
 const CATEGORIES = ['General', 'Work', 'Study', 'Personal', 'Health', 'Finance', 'Urgent'];
+const COMMITMENTS = [
+  { value: 'personal', label: 'Personal' },
+  { value: 'team', label: 'Team' },
+  { value: 'client', label: 'Client' },
+  { value: 'academic', label: 'Academic' },
+  { value: 'deadline', label: 'Hard deadline' },
+];
 
 /** ISO/UTC → local `datetime-local` value (YYYY-MM-DDTHH:mm), and back on submit. */
 const toDatetimeLocal = (iso) => {
@@ -30,11 +37,11 @@ const PinwheelIcon = ({ size = 16, color = '#FC703C', spinning = true, className
 /**
  * RetroSlider - Custom styled range input with pinwheel indicator
  */
-const RetroSlider = ({ label, name, value, onChange, min = 1, max = 5, icon: Icon, color = '#FC703C' }) => (
+const RetroSlider = ({ label, name, value, onChange, min = 1, max = 5, icon, color = '#FC703C' }) => (
   <div className="space-y-3">
     <div className="flex justify-between items-center">
       <div className="flex items-center gap-2">
-        {Icon && <Icon size={14} style={{ color }} />}
+        {icon && <PrioIcon name={icon} size={14} style={{ color }} />}
         <label className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">{label}</label>
       </div>
       <div className="flex items-center gap-2">
@@ -85,6 +92,8 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
     difficulty: 3,
     status: 'pending',
     category: 'General',
+    commitmentType: 'personal',
+    stakeholder: '',
     dependencies: [],
   });
   const [submitting, setSubmitting] = useState(false);
@@ -101,13 +110,15 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
         difficulty: initialData.difficulty || 3,
         status: initialData.status || 'pending',
         category: initialData.category || 'General',
+        commitmentType: initialData.commitmentType || 'personal',
+        stakeholder: initialData.stakeholder || '',
         dependencies: (initialData.dependencies || []).map((d) => d._id ? d._id : d),
       });
     } else {
       setForm({
         title: '', description: '', deadline: '',
         importance: 3, urgency: 3, difficulty: 3,
-        status: 'pending', category: 'General', dependencies: [],
+        status: 'pending', category: 'General', commitmentType: 'personal', stakeholder: '', dependencies: [],
       });
     }
     setError('');
@@ -192,7 +203,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
             aria-label="Close"
             className="touch-target p-2 rounded-xl text-[#CCC4BE] hover:bg-[#FC703C]/20 hover:text-[#FC703C] transition-all duration-200 hover:rotate-90 flex items-center justify-center"
           >
-            <X size={20} strokeWidth={2.5} />
+            <PrioIcon name="x" size={20} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -202,7 +213,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
           {/* Error Alert */}
           {error && (
             <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 animate-shake">
-              <AlertCircle size={18} className="animate-pulse" />
+              <PrioIcon name="alert-circle" size={18} className="animate-pulse" />
               <span className="text-sm font-bold">{error}</span>
             </div>
           )}
@@ -210,7 +221,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
           {/* Title Input */}
           <div className="space-y-2 group">
             <label className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider flex items-center gap-2">
-              <Target size={12} className="text-[#FC703C]" />
+              <PrioIcon name="target" size={12} className="text-[#FC703C]" />
               Task Title <span className="text-[#FC703C]">*</span>
             </label>
             <input
@@ -236,10 +247,9 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
           </div>
 
           {/* Deadline + Category Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">            <div className="space-y-2">
               <label className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider flex items-center gap-2">
-                <Clock size={12} className="text-[#FC703C]" />
+                <PrioIcon name="clock" size={12} className="text-[#FC703C]" />
                 Deadline <span className="text-[#FC703C]">*</span>
               </label>
               <div className="relative">
@@ -250,7 +260,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                   onChange={handleChange}
                   className="w-full px-3 py-3 rounded-xl bg-[#231612] border-2 border-[#FDF8F0]/10 text-[#FDF8F0] text-sm font-bold transition-all duration-300 focus:border-[#FC703C]/50 focus:outline-none hover:border-[#FDF8F0]/20"
                 />
-                <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#CCC4BE]/50 pointer-events-none" />
+                <PrioIcon name="calendar" size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#CCC4BE]/50 pointer-events-none" />
               </div>
             </div>
 
@@ -271,6 +281,43 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                   <PinwheelIcon size={10} color="#CCC4BE" spinning={false} />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Commitment Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">Commitment</label>
+              <div className="relative">
+                <select
+                  name="commitmentType"
+                  value={form.commitmentType}
+                  onChange={handleChange}
+                  className="w-full px-3 py-3 rounded-xl bg-[#231612] border-2 border-[#FDF8F0]/10 text-[#FDF8F0] text-sm font-bold appearance-none transition-all duration-300 focus:border-[#FC703C]/50 focus:outline-none hover:border-[#FDF8F0]/20 cursor-pointer"
+                >
+                  {COMMITMENTS.map((c) => (
+                    <option key={c.value} value={c.value} className="bg-[#2B1B17]">{c.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <PinwheelIcon size={10} color="#CCC4BE" spinning={false} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">
+                Stakeholder {form.commitmentType === 'personal' && <span className="normal-case font-bold opacity-50">(optional)</span>}
+              </label>
+              <input
+                type="text"
+                name="stakeholder"
+                value={form.stakeholder}
+                onChange={handleChange}
+                maxLength={80}
+                placeholder={form.commitmentType === 'personal' ? 'Nobody but you' : 'Who is counting on this?'}
+                className="w-full px-3 py-3 rounded-xl bg-[#231612] border-2 border-[#FDF8F0]/10 text-[#FDF8F0] text-sm font-bold transition-all duration-300 focus:border-[#FC703C]/50 focus:outline-none hover:border-[#FDF8F0]/20 placeholder:text-[#CCC4BE]/30"
+              />
             </div>
           </div>
 
@@ -303,7 +350,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#FC703C]/10 to-transparent rounded-bl-full" />
 
             <div className="flex items-center gap-2 mb-4">
-              <BarChart3 size={16} className="text-[#FC703C]" />
+              <PrioIcon name="chart-bar" size={16} className="text-[#FC703C]" />
               <p className="text-xs font-black text-[#FDF8F0] uppercase tracking-widest">Priority Matrix</p>
               <PinwheelIcon size={14} color="#FC703C" spinning={true} className="ml-auto" />
             </div>
@@ -313,7 +360,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
               name="urgency"
               value={form.urgency}
               onChange={handleSlider}
-              icon={Zap}
+              icon="energy"
               color="#EF4444"
             />
             <RetroSlider
@@ -321,7 +368,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
               name="importance"
               value={form.importance}
               onChange={handleSlider}
-              icon={Target}
+              icon="goal"
               color="#3B82F6"
             />
             <RetroSlider
@@ -329,7 +376,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
               name="difficulty"
               value={form.difficulty}
               onChange={handleSlider}
-              icon={BarChart3}
+              icon="chart-bar"
               color="#8B5CF6"
             />
           </div>
@@ -358,7 +405,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                         ? 'bg-[#FC703C] border-[#FC703C]'
                         : 'border-[#CCC4BE]/30'}
                     `}>
-                      {form.dependencies.includes(t._id) && <Check size={12} className="text-[#2B1B17]" strokeWidth={3} />}
+                      {form.dependencies.includes(t._id) && <PrioIcon name="check" size={12} className="text-[#2B1B17]" strokeWidth={3} />}
                     </div>
                     <input
                       type="checkbox"
@@ -407,7 +454,7 @@ const TaskModal = ({ isOpen, onClose, onSubmit, initialData = null, allTasks = [
                 </>
               ) : (
                 <>
-                  <Zap size={16} className="fill-current" />
+                  <PrioIcon name="energy" size={16} className="fill-current" />
                   {isEdit ? 'Save Changes' : 'Create Task'}
                 </>
               )}

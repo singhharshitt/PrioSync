@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Zap } from 'lucide-react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 
 const NotFoundPage = () => (
   <div className=" min-h-screen bg-bg-light flex flex-col items-center justify-center text-center px-6">
     <div className="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center mb-5">
-      <Zap size={28} className="text-primary" />
+      <PrioIcon name="energy" size={28} className="text-primary" />
     </div>
     <h1 className="font-display font-bold text-6xl text-primary mb-2">404</h1>
     <p className="text-lg text-gray-500 mb-6">Page not found.</p>

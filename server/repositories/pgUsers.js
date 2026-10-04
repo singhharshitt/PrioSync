@@ -71,3 +71,62 @@ export const deleteById = async (id, client) => {
     const r = await db(client).query(`DELETE FROM users WHERE id = $1`, [id]);
     return r.rowCount;
 };
+
+const PREF_COLUMNS = [
+    'available_minutes_per_day',
+    'work_start',
+    'work_end',
+    'default_energy',
+    'energy_morning',
+    'energy_afternoon',
+    'energy_evening',
+];
+
+/** Planner preferences row (created alongside the user); null-safe shape. */
+export const getPreferences = async (id, client) => {
+    const r = await db(client).query(
+        `SELECT ${PREF_COLUMNS.join(', ')} FROM user_preferences WHERE user_id = $1`,
+        [id]
+    );
+    return (
+        r.rows[0] || {
+            available_minutes_per_day: 240,
+            work_start: null,
+            work_end: null,
+            default_energy: 'normal',
+            energy_morning: 'high',
+            energy_afternoon: 'normal',
+            energy_evening: 'low',
+        }
+    );
+};
+
+const CAMEL_PREFS = {
+    availableMinutesPerDay: 'available_minutes_per_day',
+    workStart: 'work_start',
+    workEnd: 'work_end',
+    defaultEnergy: 'default_energy',
+    energyMorning: 'energy_morning',
+    energyAfternoon: 'energy_afternoon',
+    energyEvening: 'energy_evening',
+};
+
+/** Partial preference update; unknown keys ignored, validated upstream by Zod. */
+export const updatePreferences = async (id, fields, client) => {
+    const sets = [];
+    const params = [];
+    for (const [camel, col] of Object.entries(CAMEL_PREFS)) {
+        if (fields[camel] !== undefined) {
+            params.push(fields[camel]);
+            sets.push(`${col} = $${params.length}`);
+        }
+    }
+    if (sets.length === 0) return getPreferences(id, client);
+    sets.push('updated_at = now()');
+    params.push(id);
+    const r = await db(client).query(
+        `UPDATE user_preferences SET ${sets.join(', ')} WHERE user_id = $${params.length} RETURNING ${PREF_COLUMNS.join(', ')}`,
+        params
+    );
+    return r.rows[0] || null;
+};

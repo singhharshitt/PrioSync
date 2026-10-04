@@ -1,9 +1,5 @@
-import { createElement, useEffect, useMemo, useState, useRef } from 'react';
-import {
-  Plus, Search, LayoutGrid, List, Calendar,
-  ArrowUpDown, CheckCircle2, Circle, Clock, AlertCircle,
-  ArrowRight, Sparkles, Target, Zap
-} from 'lucide-react';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 // import Navbar from '../components/Navbar.jsx';
 import TaskCard from '../components/TaskCard.jsx';
@@ -13,11 +9,11 @@ import LoadingSkeleton from '../components/LoadingSkeleton.jsx';
 import useTasks from '../hooks/useTasks.js';
 
 const STATUSES = [
-  { id: 'all', label: 'All Tasks', icon: LayoutGrid, color: 'bg-[#2B1B17]' },
-  { id: 'pending', label: 'Pending', icon: Circle, color: 'bg-[#EEA175]' },
-  { id: 'in-progress', label: 'In Progress', icon: Clock, color: 'bg-[#FC703C]' },
-  { id: 'completed', label: 'Completed', icon: CheckCircle2, color: 'bg-green-500' },
-  { id: 'cancelled', label: 'Cancelled', icon: AlertCircle, color: 'bg-red-500' },
+  { id: 'all', label: 'All Tasks', icon: 'layout-grid', color: 'bg-[#2B1B17]' },
+  { id: 'pending', label: 'Pending', icon: 'circle', color: 'bg-[#EEA175]' },
+  { id: 'in-progress', label: 'In Progress', icon: 'clock', color: 'bg-[#FC703C]' },
+  { id: 'completed', label: 'Completed', icon: 'circle-check', color: 'bg-green-500' },
+  { id: 'cancelled', label: 'Cancelled', icon: 'alert-circle', color: 'bg-red-500' },
 ];
 
 const SORTS = [
@@ -178,7 +174,7 @@ const TasksPage = () => {
                     onClick={handleCreate}
                     className="group flex items-center gap-2 px-8 py-4 bg-[#FC703C] text-white rounded-full font-medium text-lg shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all duration-150 whitespace-nowrap"
                   >
-                    <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                    <PrioIcon name="plus" size={20} className="group-hover:rotate-90 transition-transform duration-300" />
                     New Task
                   </button>
                 </div>
@@ -200,7 +196,7 @@ const TasksPage = () => {
                 <StatCard
                   label="Total Tasks"
                   value={stats.total}
-                  icon={Target}
+                  icon="goal"
                   color="bg-[#2B1B17]"
                   delay={0}
                   mounted={mounted}
@@ -208,7 +204,7 @@ const TasksPage = () => {
                 <StatCard
                   label="Completed"
                   value={stats.completed}
-                  icon={CheckCircle2}
+                  icon="circle-check"
                   color="bg-green-500"
                   suffix={`${stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%`}
                   delay={100}
@@ -217,7 +213,7 @@ const TasksPage = () => {
                 <StatCard
                   label="High Priority"
                   value={stats.highPriority}
-                  icon={Zap}
+                  icon="energy"
                   color="bg-[#FC703C]"
                   alert={stats.highPriority > 0}
                   delay={200}
@@ -226,7 +222,7 @@ const TasksPage = () => {
                 <StatCard
                   label="Overdue"
                   value={stats.overdue}
-                  icon={AlertCircle}
+                  icon="alert-circle"
                   color="bg-red-500"
                   alert={stats.overdue > 0}
                   delay={300}
@@ -242,7 +238,7 @@ const TasksPage = () => {
                 {/* Search Row */}
                 <div className="flex flex-col lg:flex-row gap-4 mb-4">
                   <div className="relative flex-1">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2B1B17]/30" />
+                    <PrioIcon name="search" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2B1B17]/30" />
                     <input
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
@@ -254,7 +250,6 @@ const TasksPage = () => {
                   {/* Status Filters */}
                   <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide scroll-rail">
                     {STATUSES.map((status) => {
-                      const Icon = status.icon;
                       const isActive = filterStatus === status.id;
                       return (
                         <button
@@ -265,7 +260,7 @@ const TasksPage = () => {
                             : 'bg-[#f8f7f2] text-[#2B1B17]/70 hover:bg-white'
                             }`}
                         >
-                          <Icon size={14} />
+                          <PrioIcon name={status.icon} size={14} />
                           {status.label}
                           {status.id !== 'all' && (
                             <span className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-white/20' : 'bg-[#2B1B17]/10 text-[#2B1B17]/60'
@@ -284,7 +279,7 @@ const TasksPage = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-[#2B1B17]/5">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 bg-[#f8f7f2] rounded-xl px-3 py-2">
-                      <ArrowUpDown size={16} className="text-[#2B1B17]/40" />
+                      <PrioIcon name="arrows-up-down" size={16} className="text-[#2B1B17]/40" />
                       <select
                         value={sort}
                         onChange={(event) => setSort(event.target.value)}
@@ -307,7 +302,7 @@ const TasksPage = () => {
                           }`}
                         aria-label="List view"
                       >
-                        <List size={18} />
+                        <PrioIcon name="list" size={18} />
                       </button>
                       <button
                         onClick={() => setViewMode('grid')}
@@ -317,7 +312,7 @@ const TasksPage = () => {
                           }`}
                         aria-label="Grid view"
                       >
-                        <LayoutGrid size={18} />
+                        <PrioIcon name="layout-grid" size={18} />
                       </button>
                     </div>
                   </div>
@@ -370,7 +365,7 @@ const TasksPage = () => {
                             onClick={handleCreate}
                             className="flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-white rounded-full font-medium shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
                           >
-                            <Plus size={18} />
+                            <PrioIcon name="plus" size={18} />
                             Create Task
                           </button>
                         )
@@ -446,7 +441,7 @@ const StatCard = ({ label, value, icon, color, suffix, alert, delay, mounted }) 
         </div>
       </div>
       <div className={`w-10 h-10 rounded-xl ${color} bg-opacity-10 flex items-center justify-center`}>
-        {createElement(icon, { className: `w-5 h-5 ${color.replace('bg-', 'text-')}` })}
+        {<PrioIcon name={icon} className={`w-5 h-5 ${color.replace('bg-', 'text-')}`} />}
       </div>
     </div>
   </div>

@@ -1,14 +1,12 @@
-import { createElement, useEffect, useMemo, useState, useRef } from 'react';
-import {
-  Zap, CheckCircle, Clock, Target, Save,
-  Sparkles, TrendingUp, Calendar, Award,
-  ArrowRight, User
-} from 'lucide-react';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 import { toast } from 'react-hot-toast';
 import Sidebar from '../components/Sidebar.jsx';
 // import Navbar from '../components/Navbar.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import authService from '../services/authService.js';
+import preferencesService from '../services/preferences.js';
+import { v2Recommendations } from '../services/v2.js';
 import useTasks from '../hooks/useTasks.js';
 
 const ProfilePage = () => {
@@ -17,7 +15,40 @@ const ProfilePage = () => {
   const [name, setName] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [prefs, setPrefs] = useState(null);
+  const [prefsSaving, setPrefsSaving] = useState(false);
+  const [adherence, setAdherence] = useState(null);
   const heroRef = useRef(null);
+
+  useEffect(() => {
+    preferencesService
+      .get()
+      .then((d) => setPrefs(d?.preferences || null))
+      .catch(() => setPrefs(null));
+    v2Recommendations
+      .adherence()
+      .then((d) => setAdherence(d || null))
+      .catch(() => setAdherence(null));
+  }, []);
+
+  const savePrefs = async () => {
+    if (!prefs) return;
+    setPrefsSaving(true);
+    try {
+      const d = await preferencesService.update({
+        availableMinutesPerDay: Number(prefs.availableMinutesPerDay),
+        energyMorning: prefs.energyMorning,
+        energyAfternoon: prefs.energyAfternoon,
+        energyEvening: prefs.energyEvening,
+      });
+      setPrefs(d?.preferences || prefs);
+      toast.success('Planning rhythm saved.');
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Failed to save rhythm.');
+    } finally {
+      setPrefsSaving(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -88,7 +119,7 @@ const ProfilePage = () => {
 
               {/* Sparkles */}
               <div className="absolute top-[20%] right-[30%] text-[#FC703C]/40 animate-pulse">
-                <Sparkles size={20} />
+                <PrioIcon name="sparkles" size={20} />
               </div>
 
               {/* Grid overlay */}
@@ -147,7 +178,7 @@ const ProfilePage = () => {
                     <div>
                       <p className="text-[#2B1B17] font-semibold text-lg">{user?.name || 'User'}</p>
                       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${tierInfo.bg} ${tierInfo.color}`}>
-                        <Award size={12} />
+                        <PrioIcon name="award" size={12} />
                         {tierInfo.label}
                       </div>
                     </div>
@@ -173,7 +204,7 @@ const ProfilePage = () => {
             <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215]">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-[#FC703C]/10 flex items-center justify-center">
-                  <User className="w-5 h-5 text-[#FC703C]" />
+                  <PrioIcon name="user" className="w-5 h-5 text-[#FC703C]" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-[#2B1B17]">Profile Information</h2>
@@ -199,7 +230,7 @@ const ProfilePage = () => {
                       disabled={saving || name === user?.name}
                       className="h-14 px-6 bg-[#FC703C] text-white rounded-xl font-medium shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[4px_4px_0_#452215] disabled:hover:translate-y-0 transition-all duration-150 flex items-center justify-center gap-2 whitespace-nowrap w-full sm:w-auto"
                     >
-                      <Save size={18} />
+                      <PrioIcon name="device-floppy" size={18} />
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                   </div>
@@ -218,15 +249,78 @@ const ProfilePage = () => {
                 {/* Member Info */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-[#2B1B17]/5">
                   <div className="flex items-center gap-2 text-sm text-[#2B1B17]/50">
-                    <Calendar size={16} />
+                    <PrioIcon name="calendar" size={16} />
                     <span>Member since {memberSince}</span>
                   </div>
                   <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${tierInfo.bg} ${tierInfo.color}`}>
-                    <Award size={14} />
+                      <PrioIcon name="award" size={14} />
                     {tierInfo.label} Tier
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Planning Rhythm Card */}
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215]">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-[#FC703C]/10 flex items-center justify-center">
+                  <PrioIcon name="clock" className="w-5 h-5 text-[#FC703C]" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-[#2B1B17]">Planning Rhythm</h2>
+                  <p className="text-sm text-[#2B1B17]/40">Daily capacity and energy - drives scheduling, risk, and day plans</p>
+                </div>
+              </div>
+
+              {!prefs ? (
+                <div className="h-20 bg-[#2B1B17]/5 rounded-xl animate-pulse mt-4" />
+              ) : (
+                <div className="space-y-5 mt-4">
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest text-[#2B1B17]/40 font-medium ml-1">
+                      Available minutes per day
+                    </label>
+                    <input
+                      type="number"
+                      min={15}
+                      max={960}
+                      value={prefs.availableMinutesPerDay}
+                      onChange={(e) => setPrefs((p) => ({ ...p, availableMinutesPerDay: e.target.value }))}
+                      className="w-full sm:w-48 h-14 px-5 bg-[#f8f7f2] border border-[#2B1B17]/10 rounded-xl text-[#2B1B17] focus:outline-none focus:border-[#FC703C] focus:ring-2 focus:ring-[#FC703C]/20 transition-all"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { key: 'energyMorning', label: 'Morning' },
+                      { key: 'energyAfternoon', label: 'Afternoon' },
+                      { key: 'energyEvening', label: 'Evening' },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="space-y-2">
+                        <label className="text-xs uppercase tracking-widest text-[#2B1B17]/40 font-medium ml-1">
+                          {label}
+                        </label>
+                        <select
+                          value={prefs[key]}
+                          onChange={(e) => setPrefs((p) => ({ ...p, [key]: e.target.value }))}
+                          className="w-full h-14 px-4 bg-[#f8f7f2] border border-[#2B1B17]/10 rounded-xl text-[#2B1B17] font-bold focus:outline-none focus:border-[#FC703C] focus:ring-2 focus:ring-[#FC703C]/20 transition-all"
+                        >
+                          <option value="low">Low energy</option>
+                          <option value="normal">Normal energy</option>
+                          <option value="high">High energy</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={savePrefs}
+                    disabled={prefsSaving}
+                    className="h-14 px-6 bg-[#FC703C] text-white rounded-xl font-medium shadow-[4px_4px_0_#452215] hover:shadow-[6px_6px_0_#452215] hover:-translate-y-0.5 active:shadow-none active:translate-x-1 active:translate-y-1 disabled:opacity-50 transition-all duration-150 flex items-center justify-center gap-2"
+                  >
+                    <PrioIcon name="device-floppy" size={18} />
+                    {prefsSaving ? 'Saving...' : 'Save rhythm'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Stats Grid */}
@@ -235,7 +329,7 @@ const ProfilePage = () => {
                 label="Productivity"
                 value={safePoints}
                 suffix="/100"
-                icon={Zap}
+                icon="energy"
                 color="text-[#FC703C]"
                 bg="bg-[#FC703C]/10"
                 delay={0}
@@ -244,7 +338,7 @@ const ProfilePage = () => {
               <StatCard
                 label="Created"
                 value={stats?.total || user?.tasksCreated || 0}
-                icon={Target}
+                icon="goal"
                 color="text-[#EEA175]"
                 bg="bg-[#EEA175]/10"
                 delay={100}
@@ -253,7 +347,7 @@ const ProfilePage = () => {
               <StatCard
                 label="Completed"
                 value={stats?.completed || user?.tasksCompleted || 0}
-                icon={CheckCircle}
+                icon="circle-check"
                 color="text-green-500"
                 bg="bg-green-500/10"
                 delay={200}
@@ -262,12 +356,24 @@ const ProfilePage = () => {
               <StatCard
                 label="In Progress"
                 value={stats?.inProgress || 0}
-                icon={Clock}
+                icon="clock"
                 color="text-blue-500"
                 bg="bg-blue-500/10"
                 delay={300}
                 mounted={mounted}
               />
+              {adherence && adherence.total > 0 && (
+                <StatCard
+                  label="Follow-through"
+                  value={adherence.adherenceRate}
+                  suffix="%"
+                  icon="circle-check"
+                  color="text-purple-500"
+                  bg="bg-purple-500/10"
+                  delay={400}
+                  mounted={mounted}
+                />
+              )}
             </div>
 
             {/* Productivity Score Card */}
@@ -275,7 +381,7 @@ const ProfilePage = () => {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[#FC703C]/10 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-[#FC703C]" />
+                    <PrioIcon name="trending-up" className="w-5 h-5 text-[#FC703C]" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-[#2B1B17]">Productivity Score</h3>
@@ -309,7 +415,7 @@ const ProfilePage = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <PrioIcon name="circle-check" className="w-5 h-5 text-green-500" />
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-[#2B1B17]">Completion Rate</h3>
@@ -345,7 +451,7 @@ const ProfilePage = () => {
 
               <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-[#FC703C]/20 flex items-center justify-center border border-[#FC703C]/30">
-                  <Award className="w-7 h-7 text-[#FC703C]" />
+                  <PrioIcon name="award" className="w-7 h-7 text-[#FC703C]" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-white mb-1">Keep up the great work!</h3>
@@ -353,7 +459,7 @@ const ProfilePage = () => {
                     You're in the top {Math.max(5, Math.round((100 - safePoints) / 10))}% of productive users.
                   </p>
                 </div>
-                <ArrowRight className="w-6 h-6 text-white/40" />
+                <PrioIcon name="arrow-right" className="w-6 h-6 text-white/40" />
               </div>
             </div>
           </div>
@@ -397,7 +503,7 @@ const StatCard = ({ label, value, suffix, icon, color, bg, delay, mounted }) => 
     style={{ transitionDelay: `${delay}ms` }}
   >
     <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mb-3`}>
-      {createElement(icon, { className: `w-5 h-5 ${color}` })}
+      {<PrioIcon name={icon} className={`w-5 h-5 ${color}`} />}
     </div>
     <div className="flex items-baseline gap-1">
       <span className="text-2xl font-bold text-[#2B1B17]">{value}</span>

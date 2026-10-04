@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import {
-  Zap, Play, Pause, RotateCcw, CheckCircle2, SkipForward, Timer,
-} from 'lucide-react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { v2Tasks, v2Replans, v2Recommendations } from '../services/v2.js';
-import { CalendarClock } from 'lucide-react';
+import taskService from '../services/taskService.js';
+import insightsService from '../services/insights.js';
+
 
 const toLocalInput = (iso) => {
   const d = new Date(iso);
@@ -59,7 +59,7 @@ const ReplanBanner = ({ onApplied }) => {
   return (
     <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-3xl p-6 text-sm">
       <p className="font-black text-yellow-200 flex items-center gap-2 text-base">
-        <CalendarClock size={18} /> Plan updated? You missed {missed.length} task{missed.length === 1 ? '' : 's'}
+        <PrioIcon name="calendar-cog" size={18} /> Plan updated? You missed {missed.length} task{missed.length === 1 ? '' : 's'}
       </p>
       <ul className="mt-2 space-y-1 text-yellow-100/80">
         {missed.map((t) => (
@@ -116,6 +116,136 @@ const ReplanBanner = ({ onApplied }) => {
 };
 
 const card = 'bg-[#2B1B17] rounded-3xl p-6 border border-[#FC703C]/10 text-white';
+
+/**
+ * Today's order - dependency-safe sequence grouped for low context switching,
+ * placed into the user's energy periods. "What should I do" as a day, not
+ * just a next task.
+ */
+const DayPlanCard = ({ minutes }) => {
+  const [plan, setPlan] = useState(null);
+
+  useEffect(() => {
+    let live = true;
+    insightsService
+      .dayPlan({ minutes })
+      .then((d) => {
+        if (live) setPlan(d?.dayPlan || null);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [minutes]);
+
+  if (!plan || plan.totalMinutes === 0) return null;
+  return (
+    <div className={card}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs uppercase tracking-widest text-[#FC703C] font-black">Today&apos;s order</p>
+        <span className="text-xs text-white/40 font-mono">
+          {plan.totalMinutes} / {plan.budgetMinutes} min
+        </span>
+      </div>
+      <div className="space-y-3">
+        {plan.periods.map((p) => (
+          <div key={p.key}>
+            <p className="text-xs font-black text-white/50 uppercase tracking-wider mb-1">
+              {p.label} <span className="normal-case font-bold">({p.energy} energy · {p.from}-{p.to})</span>
+            </p>
+            {p.tasks.length === 0 ? (
+              <p className="text-xs text-white/30 italic">Open - pick anything light.</p>
+            ) : (
+              <ol className="space-y-1">
+                {p.tasks.map((x, i) => (
+                  <li key={x.taskId} className="flex items-center gap-2 text-sm bg-[#231612] rounded-lg px-3 py-2">
+                    <span className="text-white/30 font-mono text-xs w-5">{i + 1}</span>
+                    <span className="flex-1 font-bold truncate">{x.title}</span>
+                    <span className="text-xs text-white/40 font-mono">{x.estimatedMinutes}m</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        ))}
+      </div>
+      {plan.unscheduled.length > 0 && (
+        <p className="text-xs text-white/40 mt-3">
+          +{plan.unscheduled.length} more don&apos;t fit this window.
+        </p>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Reality check - what deviated from the plan, with evidence. One button
+ * generates a recovery-plan proposal (versioned, never silently applied);
+ * applying stays in the replan banner below.
+ */
+const DeviationsCard = () => {
+  const [deviations, setDeviations] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const d = await insightsService.deviations();
+      setDeviations(d?.deviations || []);
+    } catch {
+      setDeviations([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const recover = async () => {
+    setBusy(true);
+    try {
+      const d = await insightsService.autoReplan({});
+      const r = d?.replan;
+      if (!r?.planId) {
+        toast(r?.message || 'Nothing to recover - the plan stands.');
+      } else {
+        toast.success(
+          `Recovery plan v${r.version} proposed: ${r.riskBefore.level} ${r.riskBefore.score} → ${r.riskAfter.level} ${r.riskAfter.score} (${r.moves.length} moves). Review it in the replan banner.`,
+          { duration: 6000 }
+        );
+      }
+      load();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Could not build a recovery plan.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!deviations || deviations.length === 0) return null;
+
+  return (
+    <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-6 text-sm">
+      <p className="font-black text-red-200 flex items-center gap-2 text-base">
+        <PrioIcon name="alert-triangle" size={18} /> Reality check - {deviations.length} deviation{deviations.length === 1 ? '' : 's'}
+      </p>
+      <ul className="mt-2 space-y-1 text-red-100/80">
+        {deviations.slice(0, 3).map((d, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${d.severity === 'high' ? 'bg-red-400' : 'bg-yellow-400'}`} />
+            {d.message}
+          </li>
+        ))}
+      </ul>
+      <button
+        onClick={recover}
+        disabled={busy}
+        className="mt-4 px-6 py-2.5 bg-red-500 text-white font-black rounded-full hover:bg-red-400 transition-all disabled:opacity-60"
+      >
+        {busy ? 'Analyzing…' : 'Generate recovery plan'}
+      </button>
+    </div>
+  );
+};
 const pill = (active) =>
   `px-4 py-2 rounded-full text-sm font-black transition-all ${
     active ? 'bg-[#FC703C] text-[#2B1B17]' : 'bg-white/10 text-white/70 hover:bg-white/15'
@@ -147,6 +277,7 @@ const FocusFlow = () => {
   const [elapsed, setElapsed] = useState(0);
   const [saving, setSaving] = useState(false);
   const [overrideFor, setOverrideFor] = useState(null);
+  const [explanation, setExplanation] = useState(null);
 
   const OVERRIDE_REASONS = [
     { value: 'more_energy', label: 'More energy for this' },
@@ -160,6 +291,35 @@ const FocusFlow = () => {
       v2Recommendations.accept(task.id).catch(() => {});
     }
     startFocus(task);
+  };
+
+  /** Skip the top pick: promote the first alternate (recorded as prefer-first). */
+  const skipRec = () => {
+    const [nextAlt, ...rest] = alternates;
+    if (!rec?.task) return;
+    if (!nextAlt) {
+      setRec(null);
+      setMessage('Nothing else fits right now - clear a blocker or add a shorter task.');
+      return;
+    }
+    v2Recommendations
+      .override({ recommendedTaskId: rec.task.id, chosenTaskId: nextAlt.task.id, reason: 'prefer_first' })
+      .catch(() => {});
+    setRec({ task: nextAlt.task, why: nextAlt.why || [] });
+    setAlternates(rest);
+  };
+
+  /** Snooze the top pick by pushing its deadline 24h out, then re-rank. */
+  const snoozeRec = async () => {
+    if (!rec?.task) return;
+    try {
+      const base = rec.task.deadline ? new Date(rec.task.deadline).getTime() : Date.now();
+      await taskService.updateTask(rec.task.id, { deadline: new Date(base + 86400000).toISOString() });
+      toast.success('Snoozed to tomorrow.');
+      fetchNext();
+    } catch {
+      toast.error('Could not snooze this task.');
+    }
   };
 
   const overrideAndStart = (task, reason) => {
@@ -197,6 +357,22 @@ const FocusFlow = () => {
     fetchNext();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // One explain call for the top pick - the sentence behind the score.
+  useEffect(() => {
+    let live = true;
+    setExplanation(null);
+    if (!rec?.task?.id) return undefined;
+    insightsService
+      .explain(rec.task.id)
+      .then((d) => {
+        if (live) setExplanation(d?.explanation?.priorityExplanation || null);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [rec?.task?.id]);
 
   const startFocus = (task) => {
     if (!task) return;
@@ -250,6 +426,8 @@ const FocusFlow = () => {
 
       <ReplanBanner onApplied={fetchNext} />
 
+      <DeviationsCard />
+
       {/* Controls */}
       <div className={card}>
         <div className="flex flex-wrap items-center gap-2">
@@ -270,7 +448,7 @@ const FocusFlow = () => {
             disabled={loading}
             className="ml-auto px-6 py-2 bg-[#FC703C] text-[#2B1B17] font-black rounded-full hover:bg-[#ff855c] transition-all disabled:opacity-60 inline-flex items-center gap-2"
           >
-            <Zap size={16} /> {loading ? 'Thinking…' : "What's Next?"}
+            <PrioIcon name="energy" size={16} /> {loading ? 'Thinking…' : "What's Next?"}
           </button>
         </div>
       </div>
@@ -287,40 +465,59 @@ const FocusFlow = () => {
             <ul className="mt-4 space-y-1 text-sm text-white/70">
               {rec.why.map((w, i) => (
                 <li key={i} className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-green-400 shrink-0" /> {w}
+                  <PrioIcon name="circle-check" size={14} className="text-green-400 shrink-0" /> {w}
                 </li>
               ))}
             </ul>
+          )}
+          {explanation?.summary && (
+            <p className="mt-3 text-sm text-white/50 italic leading-relaxed">
+              Score {rec.task.priorityScore}: {explanation.summary}
+            </p>
           )}
 
           {/* Timer */}
           <div className="mt-6 text-center bg-[#231612] rounded-2xl py-8 border border-white/5">
             <div className="flex items-center justify-center gap-2 text-white/40 text-xs font-black uppercase tracking-widest mb-2">
-              <Timer size={14} /> {running ? 'Focusing' : 'Ready'}
+              <PrioIcon name="stopwatch" size={14} /> {running ? 'Focusing' : 'Ready'}
             </div>
             <div className="text-6xl font-black font-mono tabular-nums tracking-tight">{format(elapsed)}</div>
             <div className="flex items-center justify-center gap-3 mt-6">
               {!running ? (
-                <button
-                  onClick={() => acceptAndStart(rec.task)}
-                  className="px-8 py-3 bg-[#FC703C] text-[#2B1B17] font-black rounded-full hover:bg-[#ff855c] transition-all inline-flex items-center gap-2"
-                >
-                  <Play size={18} /> Start Focus
-                </button>
+                <>
+                  <button
+                    onClick={() => acceptAndStart(rec.task)}
+                    className="px-8 py-3 bg-[#FC703C] text-[#2B1B17] font-black rounded-full hover:bg-[#ff855c] transition-all inline-flex items-center gap-2"
+                  >
+                    <PrioIcon name="player-play" size={18} /> Start Focus
+                  </button>
+                  <button
+                    onClick={skipRec}
+                    className="px-5 py-3 bg-white/10 font-bold rounded-full hover:bg-white/15 transition-all inline-flex items-center gap-2 text-sm"
+                  >
+                    <PrioIcon name="player-skip-forward" size={16} /> Skip
+                  </button>
+                  <button
+                    onClick={snoozeRec}
+                    className="px-5 py-3 bg-white/10 font-bold rounded-full hover:bg-white/15 transition-all inline-flex items-center gap-2 text-sm"
+                  >
+                    <PrioIcon name="clock" size={16} /> Snooze
+                  </button>
+                </>
               ) : (
                 <>
                   <button
                     onClick={() => setRunning(false)}
                     className="px-6 py-3 bg-white/10 font-bold rounded-full hover:bg-white/15 transition-all inline-flex items-center gap-2"
                   >
-                    <Pause size={16} /> Pause
+                    <PrioIcon name="player-pause" size={16} /> Pause
                   </button>
                   <button
                     onClick={() => { setStartedAt(new Date()); setElapsed(0); setRunning(true); }}
                     className="p-3 bg-white/10 rounded-full hover:bg-white/15 transition-all"
                     aria-label="Restart timer"
                   >
-                    <RotateCcw size={16} />
+                    <PrioIcon name="rotate-clockwise" size={16} />
                   </button>
                 </>
               )}
@@ -332,14 +529,14 @@ const FocusFlow = () => {
                   disabled={saving}
                   className="px-6 py-2.5 bg-green-500 text-[#2B1B17] font-black rounded-full hover:bg-green-400 transition-all disabled:opacity-60 inline-flex items-center gap-2 text-sm"
                 >
-                  <CheckCircle2 size={16} /> {saving ? 'Saving…' : 'Complete'}
+                  <PrioIcon name="circle-check" size={16} /> {saving ? 'Saving…' : 'Complete'}
                 </button>
                 <button
                   onClick={() => stopAndLog(false)}
                   disabled={saving}
                   className="px-6 py-2.5 bg-white/10 font-bold rounded-full hover:bg-white/15 transition-all disabled:opacity-60 inline-flex items-center gap-2 text-sm"
                 >
-                  <SkipForward size={16} /> Log & skip
+                  <PrioIcon name="player-skip-forward" size={16} /> Log & skip
                 </button>
               </div>
             )}
@@ -391,6 +588,8 @@ const FocusFlow = () => {
           </div>
         </div>
       )}
+
+      <DayPlanCard minutes={minutes} />
     </div>
   );
 };

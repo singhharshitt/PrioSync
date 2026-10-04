@@ -18,6 +18,7 @@ const ROW = `t.id, t.user_id, t.project_id, t.goal_id, t.parent_task_id,
     t.title, t.description, t.status, t.importance, t.urgency, t.difficulty,
     t.friction, t.estimated_minutes, t.deadline, t.scheduled_start, t.scheduled_end,
     t.priority_score, t.priority_tier, t.energy_fit, t.category,
+    t.commitment_type, t.stakeholder,
     t.completed_at, t.version, t.created_at, t.updated_at`;
 
 // UPDATE ... RETURNING cannot use the `t.` alias (no FROM clause) - same columns, unqualified.
@@ -25,6 +26,7 @@ const RET = `id, user_id, project_id, goal_id, parent_task_id,
     title, description, status, importance, urgency, difficulty,
     friction, estimated_minutes, deadline, scheduled_start, scheduled_end,
     priority_score, priority_tier, energy_fit, category,
+    commitment_type, stakeholder,
     completed_at, version, created_at, updated_at`;
 
 /** Attach `dependencies: [uuid...]` to rows in one extra query (avoids N+1). */
@@ -134,17 +136,20 @@ export const create = async (
     userId,
     { title, description = '', status = 'pending', importance = 3, urgency = 3, difficulty = 3,
       friction = 3, estimatedMinutes = 30, deadline = null, category = 'General',
+      commitmentType = 'personal', stakeholder = '', energyFit = 'normal',
       projectId = null, goalId = null, parentTaskId = null, dependencies = [] },
     client
 ) => {
     const q = db(client);
     const r = await q.query(
         `INSERT INTO tasks (user_id, project_id, goal_id, parent_task_id, title, description, status,
-           importance, urgency, difficulty, friction, estimated_minutes, deadline, category)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-         RETURNING ${'id, user_id, title, description, status, importance, urgency, difficulty, friction, estimated_minutes, deadline, priority_score, priority_tier, category, completed_at, version, created_at, updated_at'}`,
+           importance, urgency, difficulty, friction, estimated_minutes, deadline, category,
+           commitment_type, stakeholder, energy_fit)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+         RETURNING ${'id, user_id, title, description, status, importance, urgency, difficulty, friction, estimated_minutes, deadline, priority_score, priority_tier, category, commitment_type, stakeholder, energy_fit, completed_at, version, created_at, updated_at'}`,
         [userId, projectId, goalId, parentTaskId, title, description, status,
-         importance, urgency, difficulty, friction, estimatedMinutes, deadline, category]
+         importance, urgency, difficulty, friction, estimatedMinutes, deadline, category,
+         commitmentType, stakeholder, energyFit]
     );
     const row = r.rows[0];
     const clean = [...new Set(dependencies)].filter((d) => d && d !== row.id);
@@ -171,26 +176,44 @@ export const setScore = async (taskId, score, tier, client) => {
 /**
  * Optimistic-concurrency update. Pass expectedVersion to enforce;
  * omit for backward-compat blind writes.
- * Returns { row } or { conflict: true, current }.
+ * Accepts camelCase (API) or snake_case (repo) keys - camelCase wins only
+ * when the snake_case twin is absent. Returns { row } or { conflict: true, current }.
  */
+const FIELD_MAP = {
+    estimatedMinutes: 'estimated_minutes',
+    energyFit: 'energy_fit',
+    projectId: 'project_id',
+    goalId: 'goal_id',
+    parentTaskId: 'parent_task_id',
+    commitmentType: 'commitment_type',
+};
+
 export const update = async (userId, taskId, fields, { expectedVersion = null, client = null } = {}) => {
     const q = db(client);
+    const normalized = { ...fields };
+    for (const [camel, snake] of Object.entries(FIELD_MAP)) {
+        if (normalized[camel] !== undefined && normalized[snake] === undefined) {
+            normalized[snake] = normalized[camel];
+        }
+        delete normalized[camel];
+    }
     const allowed = [
         'title', 'description', 'deadline', 'importance', 'urgency', 'difficulty',
-        'friction', 'estimated_minutes', 'status', 'category', 'project_id',
-        'goal_id', 'parent_task_id', 'scheduled_start', 'scheduled_end', 'energy_fit',
+        'friction', 'estimated_minutes', 'status', 'category', 'commitment_type',
+        'stakeholder', 'project_id', 'goal_id', 'parent_task_id', 'scheduled_start',
+        'scheduled_end', 'energy_fit',
     ];
     const sets = [];
     const params = [];
     for (const k of allowed) {
-        if (fields[k] !== undefined) {
-            params.push(fields[k]);
+        if (normalized[k] !== undefined) {
+            params.push(normalized[k]);
             sets.push(`${k} = $${params.length}`);
         }
     }
-    if (fields.status === 'completed') {
+    if (normalized.status === 'completed') {
         sets.push(`completed_at = COALESCE(completed_at, now())`);
-    } else if (fields.status !== undefined) {
+    } else if (normalized.status !== undefined) {
         sets.push(`completed_at = NULL`);
     }
     sets.push(`version = version + 1`, `updated_at = now()`);

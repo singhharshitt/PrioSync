@@ -1,16 +1,206 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import {
-  Sparkles, ArrowRight, Trash2, Plus, CheckCircle2,
-  AlertTriangle, Clock, ListChecks,
-} from 'lucide-react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { v2Planner } from '../services/v2.js';
+import taskService from '../services/taskService.js';
+import insightsService from '../services/insights.js';
 
 const card = 'bg-[#2B1B17] rounded-3xl p-6 border border-[#FC703C]/10 text-white';
 const input =
   'w-full px-4 py-3 rounded-xl bg-[#231612] border border-white/10 text-white placeholder:text-white/30 focus:border-[#FC703C] outline-none';
+
+/**
+ * What-if simulator - read-only scenario modeling on live tasks.
+ * Simulation never mutates production data; applying a deadline move
+ * happens through the Focus replan flow, never from here.
+ */
+const WhatIfPanel = () => {
+  const [tasks, setTasks] = useState([]);
+  const [taskId, setTaskId] = useState('');
+  const [days, setDays] = useState(2);
+  const [drop, setDrop] = useState(false);
+  const [capacity, setCapacity] = useState('');
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    taskService
+      .getTasks({ limit: 100 })
+      .then((d) => {
+        const list = (d?.tasks || []).filter((t) => t.status === 'pending' || t.status === 'in-progress');
+        setTasks(list);
+        if (list.length > 0) setTaskId(list[0]._id || list[0].id);
+      })
+      .catch(() => setTasks([]));
+  }, []);
+
+  const selected = tasks.find((t) => (t._id || t.id) === taskId);
+
+  const simulate = async () => {
+    if (!taskId) {
+      toast.error('Create a task first to simulate against.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const changes = {};
+      if (drop) {
+        changes.removeTaskIds = [taskId];
+      } else if (selected?.deadline) {
+        changes.moveDeadlines = [
+          { taskId, deadline: new Date(new Date(selected.deadline).getTime() + days * 86400000).toISOString() },
+        ];
+      } else {
+        toast.error('That task has no deadline to move - drop it instead, or set a deadline first.');
+        setBusy(false);
+        return;
+      }
+      if (capacity !== '' && Number(capacity) >= 0) changes.capacityPerDay = Number(capacity);
+      const d = await insightsService.simulate({ changes });
+      setResult(d?.simulation || null);
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Simulation failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={card}>
+      <p className="text-xs uppercase tracking-widest text-[#FC703C] font-black mb-1">What if?</p>
+      <h2 className="text-xl font-black mb-4">Simulate a change - nothing moves until you say so</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label className="block">
+          <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Task</span>
+          <select
+            value={taskId}
+            onChange={(e) => { setTaskId(e.target.value); setResult(null); }}
+            className="mt-1 w-full px-4 py-3 rounded-xl bg-[#231612] border border-white/10 text-white outline-none focus:border-[#FC703C]"
+          >
+            {tasks.map((t) => (
+              <option key={t._id || t.id} value={t._id || t.id}>{t.title}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Day capacity (optional)</span>
+          <input
+            type="number"
+            min={0}
+            max={1440}
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
+            placeholder="e.g. 180"
+            className="mt-1 w-full px-4 py-3 rounded-xl bg-[#231612] border border-white/10 text-white outline-none focus:border-[#FC703C]"
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 mt-4">
+        <label className="inline-flex items-center gap-2 text-sm text-white/70 font-bold">
+          <input type="checkbox" checked={drop} onChange={(e) => setDrop(e.target.checked)} className="accent-[#FC703C] w-4 h-4" />
+          Drop it instead of moving
+        </label>
+        {!drop && (
+          <div className="inline-flex items-center gap-2 text-sm font-black">
+            <span className="text-white/50">Move by</span>
+            <button onClick={() => setDays((d) => d - 1)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20">-</button>
+            <span className="font-mono w-14 text-center">{days > 0 ? `+${days}` : days}d</span>
+            <button onClick={() => setDays((d) => d + 1)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20">+</button>
+          </div>
+        )}
+        <button
+          onClick={simulate}
+          disabled={busy}
+          className="ml-auto px-6 py-2.5 bg-[#FC703C] text-[#2B1B17] font-black rounded-full hover:bg-[#ff855c] transition-all disabled:opacity-60"
+        >
+          {busy ? 'Simulating…' : 'Simulate'}
+        </button>
+      </div>
+      {result && (
+        <div className="mt-5 rounded-2xl bg-[#231612] border border-white/10 p-4 text-sm space-y-2">
+          <p>
+            <span className="text-white/50">Current risk:</span>{' '}
+            <span className="font-black">{result.current.riskLevel} <span className="font-mono">{result.current.riskScore}</span></span>
+            {' → '}
+            <span className="text-white/50">Scenario:</span>{' '}
+            <span className="font-black text-[#FC703C]">{result.scenario.riskLevel} <span className="font-mono">{result.scenario.riskScore}</span></span>
+          </p>
+          <p className="text-white/70">
+            Affected <span className="font-mono font-bold">{result.affected.count}</span> tasks
+            (<span className="font-mono">{(result.affected.minutes / 60).toFixed(1)}h</span>
+            {result.affected.freedMinutes > 0 && <>, <span className="font-mono">{(result.affected.freedMinutes / 60).toFixed(1)}h</span> freed</>})
+            {result.bottleneckShift.to && (
+              <> • Bottleneck: <span className="font-bold">{result.bottleneckShift.from?.title || 'none'} → {result.bottleneckShift.to.title}</span></>
+            )}
+          </p>
+          {result.mitigation && <p className="text-white/70">Suggested: {result.mitigation}</p>}
+          <p className="text-white/40 text-xs">Simulation only - apply deadline moves from the Focus replan flow.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Plan history - every significant plan as an auditable version:
+ * trigger, changes, reason, timestamp, risk before/after.
+ */
+const PlanHistory = ({ plans }) => {
+  if (!plans || plans.length === 0) return null;
+  const total = plans.length;
+  return (
+    <div className={card}>
+      <p className="text-xs uppercase tracking-widest text-[#FC703C] font-black mb-1">Plan history</p>
+      <h2 className="text-xl font-black mb-4">Every version, with its reason</h2>
+      <ol className="space-y-3">
+        {plans.map((p, i) => {
+          const h = p.health || {};
+          const proposed = h.state === 'proposed';
+          const version = total - i;
+          return (
+            <li key={p.id} className="bg-[#231612] rounded-xl px-4 py-3 border border-white/5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono font-black text-sm">v{version}</span>
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${proposed ? 'bg-yellow-500/20 text-yellow-300' : 'bg-green-500/20 text-green-300'}`}>
+                  {proposed ? 'Proposed' : 'Applied'}
+                </span>
+                {h.trigger && (
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-white/60">
+                    {h.trigger.replace(/_/g, ' ')}
+                  </span>
+                )}
+                <span className="ml-auto text-xs text-white/40">
+                  {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : ''}
+                </span>
+              </div>
+              {p.reason && <p className="text-sm text-white/70 mt-1.5 leading-relaxed">{p.reason}</p>}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-white/50">
+                {h.riskBefore && h.riskAfter && (
+                  <span>
+                    Risk <span className="font-mono font-bold">{h.riskBefore.level} {h.riskBefore.score}</span>
+                    {' → '}
+                    <span className="font-mono font-bold">{h.riskAfter.level} {h.riskAfter.score}</span>
+                  </span>
+                )}
+                {typeof p.healthScore === 'number' && (
+                  <span>Health <span className="font-mono font-bold">{p.healthScore}%</span></span>
+                )}
+                {Array.isArray(h.moves) && h.moves.length > 0 && (
+                  <span>{h.moves.length} move{h.moves.length === 1 ? '' : 's'}</span>
+                )}
+                {typeof p.taskCount === 'number' && p.taskCount > 0 && (
+                  <span>{p.taskCount} tasks</span>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+};
 
 const PlannerFlow = () => {
   const navigate = useNavigate();
@@ -20,6 +210,20 @@ const PlannerFlow = () => {
   const [preview, setPreview] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  const loadHistory = async () => {
+    try {
+      const d = await v2Planner.plans();
+      setHistory(d?.plans || []);
+    } catch {
+      /* history is enhancement - the planner works without it */
+    }
+  };
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   const handleParse = async () => {
     if (text.trim().length < 3) {
@@ -81,6 +285,7 @@ const PlannerFlow = () => {
       });
       setResult(data);
       toast.success(`Plan created - health ${data.health.score}%`);
+      loadHistory();
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Plan creation failed.');
     } finally {
@@ -109,7 +314,7 @@ const PlannerFlow = () => {
         />
         <div className="flex flex-wrap items-center gap-3 mt-4">
           <label className="flex items-center gap-2 text-sm text-white/60 font-bold">
-            <Clock size={16} className="text-[#FC703C]" />
+            <PrioIcon name="clock" size={16} className="text-[#FC703C]" />
             <input
               value={minutes}
               onChange={(e) => setMinutes(e.target.value)}
@@ -124,7 +329,7 @@ const PlannerFlow = () => {
             disabled={parsing}
             className="ml-auto inline-flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-[#2B1B17] font-black rounded-full hover:bg-[#ff855c] transition-all disabled:opacity-60"
           >
-            <Sparkles size={18} /> {parsing ? 'Understanding…' : 'Build My Plan'}
+            <PrioIcon name="sparkles" size={18} /> {parsing ? 'Understanding…' : 'Build My Plan'}
           </button>
         </div>
       </div>
@@ -135,7 +340,7 @@ const PlannerFlow = () => {
           {preview.clarificationsNeeded?.length > 0 && (
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-5 text-sm">
               <p className="font-black text-yellow-200 mb-2 flex items-center gap-2">
-                <AlertTriangle size={16} /> Open questions (confirm anyway or refine first)
+                <PrioIcon name="alert-triangle" size={16} /> Open questions (confirm anyway or refine first)
               </p>
               <ul className="space-y-1 text-yellow-100/80">
                 {preview.clarificationsNeeded.map((c, i) => (
@@ -157,7 +362,7 @@ const PlannerFlow = () => {
 
           <div className={card}>
             <p className="text-xs uppercase tracking-widest text-[#FC703C] font-black mb-4 flex items-center gap-2">
-              <ListChecks size={14} /> Tasks ({preview.tasks.length})
+              <PrioIcon name="list-check" size={14} /> Tasks ({preview.tasks.length})
             </p>
             <div className="space-y-3">
               {preview.tasks.map((t) => (
@@ -182,7 +387,7 @@ const PlannerFlow = () => {
                     <span className="text-xs text-white/40">{new Date(t.deadline).toLocaleDateString()}</span>
                   )}
                   <button onClick={() => removeTask(t.key)} className="text-white/40 hover:text-red-400 transition-colors" aria-label="Remove task">
-                    <Trash2 size={16} />
+                    <PrioIcon name="trash" size={16} />
                   </button>
                 </div>
               ))}
@@ -200,7 +405,7 @@ const PlannerFlow = () => {
               disabled={confirming}
               className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-[#FC703C] text-[#2B1B17] font-black rounded-full hover:bg-[#ff855c] transition-all disabled:opacity-60"
             >
-              {confirming ? 'Scheduling…' : 'Confirm plan'} <ArrowRight size={18} />
+              {confirming ? 'Scheduling…' : 'Confirm plan'} <PrioIcon name="arrow-right" size={18} />
             </button>
           </div>
         </div>
@@ -220,14 +425,14 @@ const PlannerFlow = () => {
             {result.health.checks?.length > 0 && (
               <ul className="mt-4 space-y-1 text-sm text-green-300/90">
                 {result.health.checks.map((c, i) => (
-                  <li key={i} className="flex items-center gap-2"><CheckCircle2 size={14} /> {c}</li>
+                  <li key={i} className="flex items-center gap-2"><PrioIcon name="circle-check" size={14} /> {c}</li>
                 ))}
               </ul>
             )}
             {result.health.warnings?.length > 0 && (
               <ul className="mt-2 space-y-1 text-sm text-yellow-200/90">
                 {result.health.warnings.map((w, i) => (
-                  <li key={i} className="flex items-center gap-2"><AlertTriangle size={14} /> {w}</li>
+                  <li key={i} className="flex items-center gap-2"><PrioIcon name="alert-triangle" size={14} /> {w}</li>
                 ))}
               </ul>
             )}
@@ -260,12 +465,14 @@ const PlannerFlow = () => {
                 onClick={() => { setPreview(null); setResult(null); setText(''); }}
                 className="px-6 py-3 bg-white/10 text-white font-bold rounded-full hover:bg-white/15 transition-all inline-flex items-center gap-2"
               >
-                <Plus size={16} /> New dump
+                <PrioIcon name="plus" size={16} /> New dump
               </button>
             </div>
           </div>
         </div>
       )}
+      <WhatIfPanel />
+      <PlanHistory plans={history} />
     </div>
   );
 };

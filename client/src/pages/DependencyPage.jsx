@@ -1,17 +1,16 @@
-import { createElement, useEffect, useState, useRef } from 'react';
-import {
-  GitBranch, RefreshCw, Zap, Target,
-  ArrowRight, Sparkles, Layers, Calculator,
-  CheckCircle2, Clock, AlertCircle
-} from 'lucide-react';
+import { useCallback, useEffect, useState, useRef } from 'react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 // import Navbar from '../components/Navbar.jsx';
 import DependencyGraph from '../components/DependencyGraph.jsx';
 import useTasks from '../hooks/useTasks.js';
+import insightsService from '../services/insights.js';
 
 const DependencyPage = () => {
   const { dagData, fetchDAG, fetchTasks, loading } = useTasks();
   const [mounted, setMounted] = useState(false);
+  const [critical, setCritical] = useState(null);
+  const [bottlenecks, setBottlenecks] = useState(null);
   const heroRef = useRef(null);
 
   useEffect(() => {
@@ -19,10 +18,33 @@ const DependencyPage = () => {
     return () => window.cancelAnimationFrame(frameId);
   }, []);
 
+  const fetchInsights = useCallback(() => {
+    insightsService
+      .criticalPath()
+      .catch(() => null)
+      .then(async (cp) => {
+        const bn = await insightsService.bottlenecks().catch(() => null);
+        setCritical(cp?.criticalPath || null);
+        setBottlenecks(bn || null);
+      })
+      .catch(() => {
+        /* insights are enhancement - the graph renders without them */
+      });
+  }, []);
+
   useEffect(() => {
     fetchDAG();
     fetchTasks({ limit: 200 });
   }, [fetchDAG, fetchTasks]);
+
+  useEffect(() => {
+    fetchInsights();
+  }, [fetchInsights]);
+
+  const refreshAll = async () => {
+    await fetchDAG();
+    await fetchInsights();
+  };
 
   const nodeCount = dagData?.nodes?.length || 0;
   const edgeCount = dagData?.edges?.length || 0;
@@ -119,10 +141,10 @@ const DependencyPage = () => {
 
               {/* Refresh Button */}
               <button
-                onClick={fetchDAG}
+                onClick={refreshAll}
                 className="mt-8 group inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-full font-medium border border-white/10 hover:bg-white/20 transition-all"
               >
-                <RefreshCw size={16} className={`${loading ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-500`} />
+                <PrioIcon name="refresh" size={16} className={`${loading ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-500`} />
                 Refresh Graph
               </button>
             </div>
@@ -136,7 +158,7 @@ const DependencyPage = () => {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[#FC703C]/10 flex items-center justify-center">
-                    <GitBranch className="w-5 h-5 text-[#FC703C]" />
+                    <PrioIcon name="dependency" className="w-5 h-5 text-[#FC703C]" />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-[#2B1B17]">Dependency Graph</h2>
@@ -149,6 +171,25 @@ const DependencyPage = () => {
                 </div>
               </div>
 
+              {/* Critical path + bottleneck strip */}
+              {(critical?.path?.length > 0 || bottlenecks?.primary) && (
+                <div className="mb-5 rounded-2xl bg-[#f8f7f2] border border-[#2B1B17]/5 p-4 space-y-2 text-sm">
+                  {critical?.path?.length > 0 && (
+                    <p className="text-[#2B1B17]/70 leading-relaxed">
+                      <span className="font-black text-[#2B1B17]">Critical path</span>
+                      {' '}({Math.round(critical.totalMinutes / 60 * 10) / 10}h):{' '}
+                      <span className="font-mono">{critical.path.map((p) => p.title).join(' → ')}</span>
+                    </p>
+                  )}
+                  {bottlenecks?.primary && (
+                    <p className="text-[#2B1B17]/70 leading-relaxed">
+                      <span className="font-black text-[#FC703C]">Bottleneck</span>
+                      {' '}{bottlenecks.primary.explanation}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {loading ? (
                 <div className="h-96 flex items-center justify-center bg-[#f8f7f2] rounded-2xl">
                   <div className="flex flex-col items-center gap-4">
@@ -158,7 +199,11 @@ const DependencyPage = () => {
                 </div>
               ) : (
                 <div className="bg-[#f8f7f2] rounded-2xl border border-[#2B1B17]/5 overflow-hidden">
-                  <DependencyGraph graph={dagData} />
+                  <DependencyGraph
+                    graph={dagData}
+                    criticalIds={(critical?.path || []).map((p) => p.taskId)}
+                    bottleneckId={bottlenecks?.primary?.taskId || null}
+                  />
                 </div>
               )}
             </div>
@@ -170,7 +215,7 @@ const DependencyPage = () => {
                   step: '01',
                   title: 'DAG Construction',
                   desc: 'Tasks and dependencies form a Directed Acyclic Graph. DFS cycle detection prevents circular dependencies.',
-                  icon: Layers,
+                  icon: 'stack',
                   color: '#FC703C',
                   delay: 0
                 },
@@ -178,7 +223,7 @@ const DependencyPage = () => {
                   step: '02',
                   title: 'Max Heap Ranking',
                   desc: 'All tasks loaded into a Max Heap priority queue. O(log n) operations ensure fast ranking and extraction.',
-                  icon: Target,
+                  icon: 'target',
                   color: '#EEA175',
                   delay: 100
                 },
@@ -186,7 +231,7 @@ const DependencyPage = () => {
                   step: '03',
                   title: 'Greedy Scheduling',
                   desc: 'Algorithm selects highest-scored available task while respecting topological dependency order.',
-                  icon: Zap,
+                  icon: 'energy',
                   color: '#2B1B17',
                   delay: 200
                 }
@@ -203,7 +248,7 @@ const DependencyPage = () => {
                     {step}
                   </div>
                   <div className="flex items-center gap-2 mb-2">
-                    {createElement(icon, { className: 'w-4 h-4', style: { color } })}
+                    {<PrioIcon name={icon} className="w-4 h-4" style={{ color }} />}
                     <h3 className="font-bold text-[#2B1B17]">{title}</h3>
                   </div>
                   <p className="text-sm text-[#2B1B17]/60 leading-relaxed">{desc}</p>
@@ -221,7 +266,7 @@ const DependencyPage = () => {
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-[#FC703C]/20 flex items-center justify-center border border-[#FC703C]/30">
-                    <Calculator className="w-5 h-5 text-[#FC703C]" />
+                    <PrioIcon name="calculator" className="w-5 h-5 text-[#FC703C]" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white">Priority Score Formula</h3>
@@ -239,14 +284,14 @@ const DependencyPage = () => {
                 {/* Weight Breakdown */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: 'Urgency', weight: '30%', color: '#ef4444', icon: AlertCircle },
-                    { label: 'Importance', weight: '25%', color: '#f97316', icon: Target },
-                    { label: 'Deadline', weight: '25%', color: '#eab308', icon: Clock },
-                    { label: 'Ease', weight: '20%', color: '#22c55e', icon: CheckCircle2 }
+                    { label: 'Urgency', weight: '30%', color: '#ef4444', icon: 'alert-circle' },
+                    { label: 'Importance', weight: '25%', color: '#f97316', icon: 'target' },
+                    { label: 'Deadline', weight: '25%', color: '#eab308', icon: 'clock' },
+                    { label: 'Ease', weight: '20%', color: '#22c55e', icon: 'circle-check' }
                   ].map(({ label, weight, color, icon }) => (
                     <div key={label} className="bg-white/5 rounded-xl p-4 border border-white/10">
                       <div className="flex items-center gap-2 mb-2">
-                        {createElement(icon, { size: 14, style: { color } })}
+                        {<PrioIcon name={icon} size={14} style={{ color }} />}
                         <span className="text-sm text-white/60">{label}</span>
                       </div>
                       <div className="flex items-center justify-between mb-2">
@@ -268,7 +313,7 @@ const DependencyPage = () => {
             <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#2B1B17]/5 shadow-[4px_4px_0_#452215]">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-[#EEA175]/10 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-[#EEA175]" />
+                  <PrioIcon name="sparkles" className="w-5 h-5 text-[#EEA175]" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-[#2B1B17]">Algorithm Complexity</h3>

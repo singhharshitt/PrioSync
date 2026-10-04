@@ -1,17 +1,16 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard, CheckSquare, GitBranch, User, LogOut, Menu, X, Zap, Sparkles, Timer,
-} from 'lucide-react';
+import PrioIcon from './icons/PrioIcon.jsx';
+import PrioSyncIcons from './icons/PrioSyncIcons.jsx';
 import { createElement, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/planner', label: 'Planner', icon: Sparkles },
-  { to: '/focus', label: 'Focus', icon: Timer },
-  { to: '/tasks', label: 'Tasks', icon: CheckSquare },
-  { to: '/dependencies', label: 'Dependencies', icon: GitBranch },
-  { to: '/profile', label: 'Profile', icon: User },
+  { to: '/dashboard', label: 'Dashboard', icon: PrioSyncIcons.Dashboard },
+  { to: '/planner', label: 'Planner', icon: PrioSyncIcons.Planner },
+  { to: '/focus', label: 'Focus', icon: PrioSyncIcons.Focus },
+  { to: '/tasks', label: 'Tasks', icon: PrioSyncIcons.Task },
+  { to: '/dependencies', label: 'Dependencies', icon: PrioSyncIcons.Dependency },
+  { to: '/profile', label: 'Profile', icon: PrioSyncIcons.Profile },
 ];
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'priosync:sidebar:collapsed';
 
@@ -108,7 +107,7 @@ const Sidebar = () => {
           className="fixed safe-top left-4 z-50 md:hidden w-10 h-10 bg-[#2B1B17] border border-[#FC703C]/30 rounded-xl flex items-center justify-center text-[#FC703C] shadow-lg"
           aria-label="Open sidebar"
         >
-          <Menu size={20} strokeWidth={2.5} />
+          <PrioIcon name="menu" size={20} strokeWidth={2.5} />
         </button>
       )}
 
@@ -160,7 +159,7 @@ const Sidebar = () => {
               className="md:hidden p-2 rounded-full text-[#CCC4BE] hover:text-[#FC703C] hover:bg-[#FC703C]/10 transition-all duration-300"
               aria-label="Close sidebar"
             >
-              <X size={20} strokeWidth={2.5} />
+              <PrioIcon name="x" size={20} strokeWidth={2.5} />
             </button>
 
             {/* Desktop collapse/expand */}
@@ -170,7 +169,7 @@ const Sidebar = () => {
                 className="hidden md:flex w-8 h-12 bg-[#FC703C] rounded-r-lg items-center justify-center text-[#2B1B17] hover:bg-[#ff855c] transition-all duration-300 shadow-lg shadow-orange-900/20"
                 aria-label="Expand sidebar"
               >
-                <Menu size={14} strokeWidth={3} />
+                <PrioIcon name="menu" size={14} strokeWidth={3} />
               </button>
             ) : (
               <button
@@ -178,7 +177,7 @@ const Sidebar = () => {
                 className="hidden md:block p-2 rounded-full text-[#CCC4BE] hover:text-[#FC703C] hover:bg-[#FC703C]/10 transition-all duration-300"
                 aria-label="Collapse sidebar"
               >
-                <Menu size={20} strokeWidth={2.5} />
+                <PrioIcon name="menu" size={20} strokeWidth={2.5} />
               </button>
             )}
           </div>
@@ -224,7 +223,7 @@ const Sidebar = () => {
                   })}
                   {/* Zap effect on hover for inactive items */}
                   {!isActive && isHovered && (
-                    <Zap size={10} className="absolute -top-1 -right-1 text-[#FC703C] fill-[#FC703C] animate-pulse" />
+                    <PrioIcon name="energy" size={10} className="absolute -top-1 -right-1 text-[#FC703C] fill-[#FC703C] animate-pulse" />
                   )}
                 </div>
 
@@ -278,7 +277,7 @@ const Sidebar = () => {
             title={collapsed ? 'Logout' : undefined}
           >
             <div className="relative">
-              <LogOut size={20} className="transition-transform duration-300 group-hover:-translate-x-1" />
+              <PrioIcon name="logout" size={20} className="transition-transform duration-300 group-hover:-translate-x-1" />
               <div className="absolute inset-0 blur-lg bg-red-500 opacity-0 group-hover:opacity-40 transition-opacity" />
             </div>
 

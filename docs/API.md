@@ -77,8 +77,7 @@ All v2 task/planner routes require a v2 token. Task writes accept optional
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/v2/tasks` | `?status=&projectId=&goalId=&limit=` |
-| POST | `/api/v2/tasks` | `{title, importance, urgency, difficulty?, friction?, estimatedMinutes?, deadline?, energyFit?, projectId?, goalId?, parentTaskId?, dependencies?}` → `{task, events}`. `deadline` accepts any JS-parseable datetime (incl. `datetime-local` `YYYY-MM-DDTHH:mm`) and is stored as UTC ISO |
+| GET | `/api/v2/tasks` | `?status=&projectId=&goalId=&limit=` || POST | `/api/v2/tasks` | `{title, importance, urgency, difficulty?, friction?, estimatedMinutes?, deadline?, energyFit?, category?, commitmentType?, stakeholder?, projectId?, goalId?, parentTaskId?, dependencies?}` → `{task, events}`. `deadline` accepts any JS-parseable datetime (incl. `datetime-local` `YYYY-MM-DDTHH:mm`) and is stored as UTC ISO |
 | GET | `/api/v2/tasks/:id` | — |
 | PUT | `/api/v2/tasks/:id` | partial + `version?` → `{task, events}` |
 | DELETE | `/api/v2/tasks/:id` | cascades deps; history rows survive (`task_id SET NULL`) |
@@ -92,8 +91,34 @@ All v2 task/planner routes require a v2 token. Task writes accept optional
 | POST | `/api/v2/tasks/focus-session` | `{taskId, startedAt, endedAt, durationSeconds}` (requires `endedAt > startedAt`) → `work_sessions` + cache bust |
 
 `priorityScore` semantics (unchanged from v1): `0–100`, plus a `blocked` flag;
-tiers from `getPriorityTier`: `critical` (≥80), `high` (≥60), `medium` (≥40),
+tiers from `getPriorityTier`: `critical` (≥80), `high` (≥60), `medium` (≥35),
 `low`. The `/explain` endpoint returns the weighted breakdown behind a score.
+
+### Planning intelligence (read-only unless noted)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v2/insights/risk?goalId=&projectId=` | Deterministic deadline risk: `{riskLevel LOW\|MEDIUM\|HIGH\|CRITICAL, riskScore 0-100, summary, factors[], remainingMinutes, capacityMinutes, daysLeft, deadline, blockedMinutes/Count, overdueCount, calibration}` — every point attributable to a factor |
+| GET | `/api/v2/insights/critical-path?goalId=&projectId=` | Longest duration chain: `{path: [{taskId, title, estimatedMinutes, cumulativeMinutes}], totalMinutes, taskCount}` |
+| GET | `/api/v2/insights/bottlenecks?goalId=&projectId=&top=` | `{primary, bottlenecks: [{taskId, title, downstreamCount, downstreamMinutes, explanation}], blockedWork: {blockedCount, blockedMinutes, tasks}}` |
+| GET | `/api/v2/insights/capacity?goalId=&projectId=&days=&perDay=` | `{plannedMinutes, capacityMinutes, balanceMinutes, overloaded, overloadMinutes, options[]}` — options A-D are relief suggestions, never applied |
+| POST | `/api/v2/insights/simulate` | `{goalId?, projectId?, changes: {moveDeadlines? [{taskId, deadline}], removeTaskIds?, capacityPerDay?, addDays?}}` → `{current, scenario, affected {count, minutes, freedMinutes, taskIds}, bottleneckShift {from, to}, mitigation, capacity}` — pure computation on cloned rows, never writes |
+| GET | `/api/v2/tasks/:id/explain` | Extended (additive): legacy `{score, tier, breakdown, blocked, unlocks}` plus `priorityExplanation: {factors, positiveFactors, negativeFactors, info, summary}` |
+| GET | `/api/v2/insights/deviations?goalId=&projectId=` | Planned-vs-actual evidence: `[{type TASK_OVERRUN\|MISSED_DEADLINE\|BLOCKED_AT_RISK, severity, taskId, title, message, ...metrics}]` — detection only, never acts |
+| GET | `/api/v2/insights/drift` | Observed behavior patterns only (no psychology): `repeated_postponement` (3+ reschedules), `chronic_underestimation` (category ≥1.3x, ≥3 samples), `fragmented_sessions` (4+ sittings, still open) — each with evidence + planning suggestion |
+| GET | `/api/v2/insights/calibration?groupBy=category\|project` | `{factor, samples, calibrated, groups: {label: {...}}}` — actual ÷ estimated from timed sessions, clamped [0.5, 3], minimum 3 samples per group before it engages |
+| POST | `/api/v2/insights/auto-replan` | `{goalId?, projectId?, taskIds?, reason?}` → `{planId, version, trigger, reason, riskBefore, riskAfter, moves, impact, applied: false}` — creates a PROPOSED plan version (state in `health_details`) + `PLAN_CREATED` event; applying stays on `POST /replans/accept`, which records its own version |
+| GET | `/api/v2/insights/context-order?goalId=&projectId=&lambda=` | Dependency-safe execution order balancing priority vs context-switch cost: `{order: [{position, taskId, title, priorityScore, estimatedMinutes, category, switchCost}], totalSwitchCost, lambda}` |
+| GET | `/api/v2/insights/day-plan?goalId=&projectId=&minutes=&lambda=` | Energy-matched day thirds (morning/afternoon/evening from the user's rhythm): `{periods: [{key, label, energy, from, to, minutes, usedMinutes, tasks}], unscheduled, totalMinutes, budgetMinutes}` |
+| GET | `/api/v2/insights/scope?goalId=` | Scope creep vs goal baseline (or whole workload): `{originalTasks, currentTasks, addedTasks, removedTasks, deadlineMoves, growthPct, added[], message}` |
+| GET | `/api/v2/insights/commitments` | Non-personal open commitments with risk flags: `{commitments: [{taskId, title, commitmentType, stakeholder, deadline, riskFlags[], atRisk}], count, atRiskCount}` |
+| GET | `/api/v2/preferences` | Planner rhythm: `{availableMinutesPerDay, workStart, workEnd, defaultEnergy, energyMorning, energyAfternoon, energyEvening}` |
+| PUT | `/api/v2/preferences` | Partial update (at least one field; `HH:MM` validated, energy enums) → same shape |
+
+Calibration: `factor = actual ÷ estimated` over timed focus sessions on
+completed work, clamped to [0.5, 3]; fewer than 3 samples → factor 1.0,
+`calibrated: false` (no guessing). Currently global; per-project/tag splits
+are the documented Phase-2 extension.
 
 ### Planner (brain dump)
 

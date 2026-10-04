@@ -1,17 +1,8 @@
-import { useState } from 'react';
-import {
-  Calendar,
-  Trash2,
-  Edit2,
-  ChevronDown,
-  ChevronUp,
-  Link as LinkIcon,
-  Zap,
-  Clock,
-  AlertCircle
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import PrioIcon from './icons/PrioIcon.jsx';
 
 import PriorityBadge from './PriorityBadge.jsx';
+import insightsService from '../services/insights.js';
 
 const statusConfig = {
   pending: {
@@ -79,11 +70,33 @@ const PinwheelSpinner = ({ size = 16, color = '#FC703C', spinning = true }) => (
 const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
   const [expanded, setExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [explanation, setExplanation] = useState(null);
   const taskId = task?._id || task?.id;
   const taskTitle = task?.title || task?.name || 'Untitled Task';
   const overdue = isOverdue(task.deadline, task.status);
   const dateInfo = formatDate(task.deadline);
   const statusStyle = statusConfig[task.status] || statusConfig.pending;
+
+  // Blocked is computable locally when dependencies carry statuses.
+  const blockedDeps = (task.dependencies || []).filter(
+    (d) => d && typeof d === 'object' && d.status && d.status !== 'completed'
+  );
+  const blocked = blockedDeps.length > 0;
+
+  // One explain call per expansion - the factor bars behind the score.
+  useEffect(() => {
+    if (!expanded || !taskId || explanation) return;
+    let live = true;
+    insightsService
+      .explain(taskId)
+      .then((d) => {
+        if (live) setExplanation(d?.explanation?.priorityExplanation || null);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [expanded, taskId, explanation]);
 
   return (
     <div
@@ -137,7 +150,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
 
               {overdue && (
                 <span className="flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse">
-                  <AlertCircle size={10} />
+                  <PrioIcon name="alert-circle" size={10} />
                   OVERDUE
                 </span>
               )}
@@ -169,7 +182,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
               title={expanded ? 'Collapse' : 'Expand'}
               aria-label={expanded ? 'Collapse' : 'Expand'}
             >
-              {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              {expanded ? <PrioIcon name="chevron-up" size={18} /> : <PrioIcon name="chevron-down" size={18} />}
             </button>
             <button
               onClick={() => onEdit?.(task)}
@@ -177,7 +190,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
               title="Edit"
               aria-label="Edit task"
             >
-              <Edit2 size={18} />
+              <PrioIcon name="edit" size={18} />
             </button>
             <button
               onClick={() => taskId && onDelete?.(taskId)}
@@ -185,7 +198,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
               title="Delete"
               aria-label="Delete task"
             >
-              <Trash2 size={18} />
+              <PrioIcon name="trash" size={18} />
             </button>
           </div>
         </div>
@@ -203,7 +216,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
             <div className={`
               p-1.5 rounded-lg ${overdue ? 'bg-red-500/20' : 'bg-[#FC703C]/10'}
             `}>
-              {overdue ? <AlertCircle size={14} /> : <Calendar size={14} />}
+              {overdue ? <PrioIcon name="alert-circle" size={14} /> : <PrioIcon name="calendar" size={14} />}
             </div>
             <span>
               {typeof dateInfo === 'object' ? dateInfo.text : dateInfo}
@@ -215,9 +228,14 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
           {task.dependencies?.length > 0 && (
             <div className="flex items-center gap-2 text-xs font-bold text-[#CCC4BE]">
               <div className="p-1.5 rounded-lg bg-[#FC703C]/10">
-                <LinkIcon size={14} className="text-[#FC703C]" />
+                <PrioIcon name="link" size={14} className="text-[#FC703C]" />
               </div>
               <span>{task.dependencies.length} dep{task.dependencies.length !== 1 ? 's' : ''}</span>
+              {blocked && (
+                <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 font-black uppercase tracking-wider text-[10px]">
+                  Blocked
+                </span>
+              )}
             </div>
           )}
 
@@ -267,6 +285,35 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Why this score - factor bars behind the priority */}
+          {explanation && (explanation.positiveFactors?.length > 0 || explanation.negativeFactors?.length > 0) && (
+            <div className="mb-4">
+              <div className="text-xs font-black text-[#FDF8F0] uppercase tracking-wider mb-2 flex items-center gap-2">
+                <PrioIcon name="energy" size={12} color="#FC703C" />
+                Why {task.priorityScore}
+              </div>
+              <div className="space-y-1.5">
+                {[...(explanation.positiveFactors || []), ...(explanation.negativeFactors || [])].map((f) => (
+                  <div key={f.code} className="flex items-center gap-2">
+                    <span className="text-[11px] text-[#CCC4BE] font-bold w-40 truncate">{f.label}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-[#231612] overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${f.points >= 0 ? 'bg-[#FC703C]' : 'bg-red-500'}`}
+                        style={{ width: `${Math.min(100, Math.abs(f.points) * 3.2)}%` }}
+                      />
+                    </div>
+                    <span className="text-[11px] font-mono font-bold text-[#FDF8F0] w-9 text-right">
+                      {f.points > 0 ? `+${f.points}` : f.points}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {explanation.summary && (
+                <p className="text-xs text-[#CCC4BE]/70 italic mt-2 leading-relaxed">{explanation.summary}</p>
+              )}
             </div>
           )}
 

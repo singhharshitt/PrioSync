@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Zap } from 'lucide-react';
+import PrioIcon from './icons/PrioIcon.jsx';
 
 /**
  * StatCard - Retro GSAP-inspired dashboard metric card
@@ -64,7 +64,8 @@ const StatCard = ({ label, value, icon: Icon, color = '#FC703C', sublabel, trend
 
           {/* Zap indicator on hover */}
           {isHovered && (
-            <Zap 
+            <PrioIcon
+              name="energy"
               size={10} 
               className="absolute -top-1 -right-1 text-[#FC703C] fill-[#FC703C] animate-pulse" 
             />

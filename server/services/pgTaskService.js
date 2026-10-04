@@ -25,7 +25,7 @@ export const presentTask = (row) => {
     if (!row) return row;
     const { priority_score, priority_tier, estimated_minutes, scheduled_start, scheduled_end,
         completed_at, created_at, updated_at, parent_task_id, project_id, goal_id,
-        user_id, energy_fit, dependencyDetails, ...rest } = row;
+        user_id, energy_fit, commitment_type, stakeholder, dependencyDetails, ...rest } = row;
     const details = (dependencyDetails || []).map((d) => presentTask({ ...d, dependencies: [] }));
     return {
         ...rest,
@@ -41,6 +41,8 @@ export const presentTask = (row) => {
         priorityScore: priority_score,
         priorityTier: priority_tier,
         energyFit: energy_fit,
+        commitmentType: commitment_type || 'personal',
+        stakeholder: stakeholder || '',
         completedAt: completed_at,
         createdAt: created_at,
         updatedAt: updated_at,

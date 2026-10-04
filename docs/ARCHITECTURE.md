@@ -69,6 +69,131 @@ nodes); fixed and covered in `tests/dag.test.js`. The scheduler previously
 claimed topo ordering it didn't enforce — now honest: heap order over
 dependency-penalized scores.
 
+## Planning intelligence (Phase 1)
+
+Pure deterministic engines in `server/planner/`, orchestrated read-only by
+`services/insightService.js`, exposed at `/api/v2/insights/*`. No new tables:
+everything computes from tasks, dependencies, work sessions, and preferences.
+
+```mermaid
+flowchart LR
+    subgraph scope["Scope load (insightService)"]
+        T["tasks + deps\n(allForScoring)"]
+        C["capacity\n(user_preferences)"]
+        K["calibration\n(work_sessions)"]
+    end
+    T --> RISK["riskEngine\nassessDeadlineRisk()"]
+    C --> RISK
+    K --> RISK
+    T --> CP["criticalPath\ncalculateCriticalPath()\nfindBottlenecks()\ncalculateBlockedWork()\ncalculateDelayPropagation()"]
+    T --> CAP["capacity\nanalyzeCapacity()"]
+    C --> CAP
+    K --> CAP
+    RISK --> API["/insights/risk"]
+    CP --> API2["/insights/critical-path\n/insights/bottlenecks"]
+    CAP --> API3["/insights/capacity"]
+    T --> SIM["scenario\nsimulateScenario()\n(cloned rows only)"]
+    SIM --> API4["POST /insights/simulate"]
+```
+
+**Risk model** (`riskEngine.js`, documented in-code): load points 0-55 from
+remaining/capacity ratio with kink points at 0.7x and 1.0x, +0-10 blocked
+share, +3 per overdue task (cap 12), +0-8 downstream concentration, floor
+MEDIUM on any overdue item, cap MEDIUM with no in-scope deadline. Levels:
+<30 LOW, <55 MEDIUM, <75 HIGH, else CRITICAL. The summary sentence is
+generated from the top factors - never templated optimism.
+
+**Critical path**: longest estimated-minutes chain over open tasks via DP on
+the existing DAG's topological order (cycle edges are rejected by `addEdge`,
+so hostile input degrades to a shorter path, never a hang).
+
+**Calibration**: global actual/estimated factor from timed sessions on
+completed work, clamped [0.5, 3], minimum 3 samples before it engages.
+Feeds risk, capacity, and critical path durations.
+
+**Explanation object**: engine breakdown mapped to signed factors plus
+honestly-marked non-score context (downstream unlocks). Additive on the
+existing `/explain` response - old fields untouched.
+
+**Simulation**: synthetic deadline moves, removals, capacity overrides, and
+day shifts applied to cloned rows; reports current vs scenario risk,
+affected set (traversed on the ORIGINAL graph so removals don't hide stranded
+dependents), freed minutes, bottleneck shift, and a mitigation drawn from the
+scenario's capacity options. Proven read-only by test (row re-read equality).
+
+## Adaptive loop (Phase 2)
+
+Detection proposes; only explicit acceptance applies. No new tables - versions
+are `plan_versions` rows (proposal state in `health_details`), history is
+`task_events`, learning reads `work_sessions`.
+
+```mermaid
+flowchart LR
+    OBS["execute\nwork_sessions\ntask_events"] --> DEV["deviations\nTASK_OVERRUN\nMISSED_DEADLINE\nBLOCKED_AT_RISK"]
+    OBS --> DRIFT["drift\nrepeated_postponement\nchronic_underestimation\nfragmented_sessions"]
+    OBS --> CAL["calibration\nglobal + per-category/project\nmin 3 samples, clamp 0.5-3"]
+    DEV --> AUTO["autoReplan()\ntrigger + moves\nrisk before/after"]
+    CAL --> AUTO
+    AUTO -->|"PROPOSED version\n(applied: false)"| HV["plan_versions\n+ PLAN_CREATED"]
+    HV -->|"user accepts"| ACC["/replans/accept\nAPPLIED version"]
+```
+
+- **Deviation thresholds** (in-code, conservative): overrun = actual ≥150% of
+  estimate with ≥15 min excess; postponement = 3+ reschedules; fragmentation =
+  4+ sittings on still-open work; underestimation = category factor ≥1.3.
+- **Auto-replan** picks the top deviation as trigger, builds day-packed moves
+  with the existing proposer, prices risk before/after through the same risk
+  + simulation engines, and persists trigger, reasons, moves, and both risk
+  readings. Nothing moves until `/replans/accept`, which writes its own
+  version - the audit trail shows proposed vs applied.
+- **Drift** reports observed patterns with evidence strings and one concrete
+  planning adjustment each. No psychological claims, ever.
+
+## Product experience (Phase 4 - UI over existing APIs, no new endpoints)
+
+- **Planner**: auditable plan history (version, proposed/applied state,
+  trigger, reason, risk before/after, moves) reloading after each confirm;
+  read-only what-if panel (move/drop/capacity scenarios with affected set,
+  bottleneck shift, mitigation).
+- **Dependencies**: critical-path chain + bottleneck explanation banner;
+  dashed-ring critical nodes and red-ring bottleneck node with tag on the SVG
+  graph, with a legend for the overlays.
+- **Task cards**: blocked chip computed locally from populated dependency
+  statuses; one explain call per card expansion renders the signed factor
+  bars and the generated summary sentence.
+- **Focus**: Skip promotes the first alternate (recorded as prefer-first);
+  Snooze pushes the deadline 24h and re-ranks; day-plan section orders the
+  selected window into energy periods; deviations card proposes recovery
+  plans that the replan banner applies.
+- **Profile**: planning-rhythm editor (capacity + energy map) feeding
+  scheduling/risk/day-plan; follow-through card from recommendation
+  adherence (hidden until data exists).
+
+## Advanced planning (Phase 3)
+
+- **Context switching** (`planner/contextSwitch.js`): 0-7 cost per transition
+  (category +2, distinct projects +3, energy distance +0-2). `scheduleWithContext`
+  runs Kahn's algorithm over the DAG picking `priorityScore - lambda x cost`
+  among ready tasks - dependencies always beat grouping; cycles drain by
+  priority instead of hanging.
+- **Energy-aware day plan** (`planner/dayPlan.js`): the work window
+  (user `work_start`/`work_end`, default 09:00-18:00) split into
+  morning/afternoon/evening thirds carrying the user's chosen energy levels
+  (`PUT /preferences`). Tasks land where energy matches exactly first,
+  nearest otherwise; overflow is listed as unscheduled, never overfilled.
+  A user-controlled preference, not a diagnosis.
+- **Scope creep** (`planner/scope.js`): original vs current counts, added
+  tasks, `TASK_DELETED` removals and `TASK_RESCHEDULED` moves from the event
+  trail, growth %, against a goal baseline or the whole workload.
+- **Commitments**: nullable-by-design columns (`commitment_type`,
+  `stakeholder`, both defaulted) accepted on create/update, surfaced in
+  `presentTask`, with an at-risk listing (overdue / blocked / due < 48h) for
+  non-personal types at `/insights/commitments`.
+- **Migration discipline**: `db/migrations/*.sql` (idempotent ALTERs +
+  constraint guards) applied by `db/migrate.js` with a `schema_migrations`
+  ledger; `schema.sql` updated in lockstep so fresh installs converge.
+  Verified by running twice (second run is a no-op).
+
 ## AI / determinism split (mandatory)
 
 ```

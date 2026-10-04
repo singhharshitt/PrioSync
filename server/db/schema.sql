@@ -28,6 +28,12 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   work_end TIME,
   default_energy TEXT NOT NULL DEFAULT 'normal'
     CHECK (default_energy IN ('low','normal','high')),
+  energy_morning TEXT NOT NULL DEFAULT 'high'
+    CHECK (energy_morning IN ('low','normal','high')),
+  energy_afternoon TEXT NOT NULL DEFAULT 'normal'
+    CHECK (energy_afternoon IN ('low','normal','high')),
+  energy_evening TEXT NOT NULL DEFAULT 'low'
+    CHECK (energy_evening IN ('low','normal','high')),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -87,6 +93,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   energy_fit TEXT NOT NULL DEFAULT 'normal'
     CHECK (energy_fit IN ('low','normal','high')),
   category TEXT NOT NULL DEFAULT 'General',
+  commitment_type TEXT NOT NULL DEFAULT 'personal'
+    CHECK (commitment_type IN ('personal','team','client','academic','deadline')),
+  stakeholder TEXT NOT NULL DEFAULT '',
   completed_at TIMESTAMPTZ,
   version INT NOT NULL DEFAULT 1 CHECK (version >= 1),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

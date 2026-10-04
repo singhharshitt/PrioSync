@@ -313,7 +313,7 @@ Students implementing PRIOSYNC will master:
 
 **Technical Details:**
 - Tailwind CSS 4 for styling
-- Framer Motion for animations
+- CSS keyframe animations (no animation library)
 - SVG for scalable graphics
 - Mobile-first responsive design
 
@@ -1265,8 +1265,7 @@ UI Renders Updated Data
 | **Tailwind CSS** | Styling | 4 | Utility-first, responsive, fast |
 | **Axios** | HTTP Client | Latest | Promise-based, interceptors, easy JWT integration |
 | **Recharts** | Charts | Latest | React-native, responsive charts |
-| **Lucide Icons** | Icons | Latest | Clean, consistent icon library |
-| **Framer Motion** | Animations | Latest | Smooth, performance-optimized |
+| **Tabler Icons (vendored)** | Icons | Better Icons 1.0.4 pin | Local SVG assets rendered through `PrioIcon` - no icon package installed |
 | **react-hot-toast** | Notifications | Latest | Non-intrusive, accessible |
 
 ### 9.2 Backend Technologies

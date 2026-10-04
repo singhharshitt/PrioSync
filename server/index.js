@@ -18,6 +18,8 @@ import v2AuthRoutes from './routes/v2AuthRoutes.js';
 import v2TaskRoutes from './routes/v2TaskRoutes.js';
 import { plannerRouter, plansRouter } from './routes/v2PlannerRoutes.js';
 import { replansRouter, recommendationsRouter } from './routes/v2ReplanRoutes.js';
+import insightsRouter from './routes/v2InsightsRoutes.js';
+import preferencesRouter from './routes/v2PreferencesRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -117,6 +119,8 @@ app.use('/api/v2/planner', requirePostgres, plannerRouter);
 app.use('/api/v2/plans', requirePostgres, plansRouter);
 app.use('/api/v2/replans', requirePostgres, replansRouter);
 app.use('/api/v2/recommendations', requirePostgres, recommendationsRouter);
+app.use('/api/v2/insights', requirePostgres, insightsRouter);
+app.use('/api/v2/preferences', requirePostgres, preferencesRouter);
 
 app.get('/api/metrics', (req, res) => {
   res.type('text/plain; version=0.0.4').send(renderMetrics(cacheMeta));

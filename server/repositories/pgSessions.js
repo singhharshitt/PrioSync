@@ -1,5 +1,18 @@
 import { getPool } from '../db/pgClient.js';
 
+/** Sessions for deviation/drift analysis (newest first, capped). */
+export const listByUser = async (userId, { limit = 500 } = {}, client) => {
+    const q = client || getPool();
+    const lim = Math.min(Math.max(Number(limit) || 500, 1), 2000);
+    const r = await q.query(
+        `SELECT task_id AS "taskId", duration_seconds AS "durationSeconds", ended_at AS "endedAt"
+         FROM work_sessions WHERE user_id = $1
+         ORDER BY ended_at DESC LIMIT $2`,
+        [userId, lim]
+    );
+    return r.rows;
+};
+
 /** Persist a focus/work session + history event atomically. */
 export const log = async (userId, { taskId = null, startedAt, endedAt, durationSeconds }, client) => {
     const q = client || getPool();

@@ -35,6 +35,8 @@ export const taskCreateSchema = z.object({
     estimatedMinutes: z.number().int().min(1).max(10080).default(30),
     status: z.enum(['pending', 'in-progress', 'completed', 'cancelled']).default('pending'),
     category: z.string().trim().max(50).default('General'),
+    commitmentType: z.enum(['personal', 'team', 'client', 'academic', 'deadline']).default('personal'),
+    stakeholder: z.string().trim().max(80).default(''),
     energyFit: z.enum(['low', 'normal', 'high']).default('normal'),
     projectId: uuid.nullable().optional(),
     goalId: uuid.nullable().optional(),

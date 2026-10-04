@@ -1,9 +1,6 @@
-import { createElement, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Eye, EyeOff, Zap, AlertCircle, ArrowRight, 
-  Github, Twitter, Mail, User, Lock, Sparkles
-} from 'lucide-react';
+import PrioIcon from '../components/icons/PrioIcon.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const AuthPage = () => {
@@ -136,13 +133,13 @@ const AuthPage = () => {
         
         {/* Decorative stars/sparkles */}
         <div className="absolute top-[15%] left-[25%] text-[#FC703C]/40 animate-pulse">
-          <Sparkles size={24} />
+          <PrioIcon name="sparkles" size={24} />
         </div>
         <div className="absolute bottom-[30%] right-[20%] text-[#EEA175]/50 animate-pulse" style={{ animationDelay: '1s' }}>
-          <Sparkles size={20} />
+          <PrioIcon name="sparkles" size={20} />
         </div>
         <div className="absolute top-[70%] right-[30%] text-[#2B1B17]/20 animate-pulse" style={{ animationDelay: '2s' }}>
-          <Sparkles size={16} />
+          <PrioIcon name="sparkles" size={16} />
         </div>
         
         {/* Animated squiggle lines */}
@@ -229,7 +226,7 @@ const AuthPage = () => {
           {/* Error Message */}
           {error && (
             <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 text-sm animate-shake">
-              <AlertCircle size={16} />
+              <PrioIcon name="alert-circle" size={16} />
               <span>{error}</span>
             </div>
           )}
@@ -239,7 +236,7 @@ const AuthPage = () => {
             {/* Full Name - Register Only */}
             <div className={`space-y-1.5 transition-all duration-300 ${isLogin ? 'h-0 opacity-0 overflow-hidden' : 'h-auto opacity-100'}`}>
               <label className="text-xs uppercase tracking-widest text-[#2B1B17]/50 font-medium ml-1 flex items-center gap-2">
-                <User size={12} />
+                <PrioIcon name="user" size={12} />
                 Full Name
               </label>
               <input
@@ -256,7 +253,7 @@ const AuthPage = () => {
             {/* Email */}
             <div className="space-y-1.5">
               <label className="text-xs uppercase tracking-widest text-[#2B1B17]/50 font-medium ml-1 flex items-center gap-2">
-                <Mail size={12} />
+                <PrioIcon name="mail" size={12} />
                 Email Address
               </label>
               <input
@@ -274,7 +271,7 @@ const AuthPage = () => {
             {/* Password */}
             <div className="space-y-1.5">
               <label className="text-xs uppercase tracking-widest text-[#2B1B17]/50 font-medium ml-1 flex items-center gap-2">
-                <Lock size={12} />
+                <PrioIcon name="lock" size={12} />
                 Password
               </label>
               <div className="relative">
@@ -293,7 +290,7 @@ const AuthPage = () => {
                   onClick={() => setShowPass((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2B1B17]/30 hover:text-[#2B1B17]/60 transition-colors"
                 >
-                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPass ? <PrioIcon name="eye-off" size={18} /> : <PrioIcon name="eye" size={18} />}
                 </button>
               </div>
               
@@ -383,7 +380,7 @@ const AuthPage = () => {
               ) : (
                 <>
                   {isLogin ? 'Continue' : 'Create Account'}
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <PrioIcon name="arrow-right" className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </button>
@@ -404,9 +401,9 @@ const AuthPage = () => {
           {/* Social Login */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { icon: Mail, label: 'Google', color: 'hover:bg-red-50 hover:border-red-200' },
-              { icon: Github, label: 'GitHub', color: 'hover:bg-gray-100 hover:border-gray-300' },
-              { icon: Twitter, label: 'Twitter', color: 'hover:bg-blue-50 hover:border-blue-200' }
+              { icon: 'mail', label: 'Google', color: 'hover:bg-red-50 hover:border-red-200' },
+              { icon: 'github', label: 'GitHub', color: 'hover:bg-gray-100 hover:border-gray-300' },
+              { icon: 'twitter', label: 'Twitter', color: 'hover:bg-blue-50 hover:border-blue-200' }
             ].map(({ icon, label, color }) => (
               <button
                 key={label}
@@ -421,7 +418,7 @@ const AuthPage = () => {
                   transition-all duration-150 group
                 `}
               >
-                {createElement(icon, { className: 'w-4 h-4 group-hover:scale-110 transition-transform' })}
+                {<PrioIcon name={icon} className='w-4 h-4 group-hover:scale-110 transition-transform' />}
                 <span className="text-xs hidden sm:inline font-medium">{label}</span>
               </button>
             ))}
