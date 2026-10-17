@@ -15,6 +15,10 @@ import {
     contextOrderQuery,
     dayPlanQuery,
     goalScopeQuery,
+    resilienceQuery,
+    resolveSchema,
+    recoverySchema,
+    allocationQuery,
 } from '../validators/insights.js';
 import {
     getRisk,
@@ -30,6 +34,13 @@ import {
     getDayPlan,
     getScope,
     getCommitments,
+    getResilience,
+    resolveConstraints,
+    getRecovery,
+    getTraceability,
+    getEfficiency,
+    getPlanDebt,
+    getAllocation,
 } from '../controllers/pgInsightController.js';
 
 const router = express.Router();
@@ -49,5 +60,14 @@ router.get('/context-order', validateQuery(contextOrderQuery), getContextOrder);
 router.get('/day-plan', validateQuery(dayPlanQuery), getDayPlan);
 router.get('/scope', validateQuery(goalScopeQuery), getScope);
 router.get('/commitments', getCommitments);
+router.get('/resilience', validateQuery(resilienceQuery), getResilience);
+router.post('/resolve', validateBody(resolveSchema), resolveConstraints);
+router.post('/recovery', validateBody(recoverySchema), getRecovery);
+
+// Tier A (spec 35-39): traceability, efficiency, plan debt, allocation.
+router.get('/traceability', getTraceability);
+router.get('/efficiency', validateQuery(goalScopeQuery), getEfficiency);
+router.get('/plan-debt', getPlanDebt);
+router.get('/allocation', validateQuery(allocationQuery), getAllocation);
 
 export default router;

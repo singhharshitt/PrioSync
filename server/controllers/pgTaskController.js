@@ -5,6 +5,7 @@ import * as Svc from '../services/pgTaskService.js';
 import * as InsightSvc from '../services/insightService.js';
 import { readThrough, bustUser } from '../cache/taskCache.js';
 import { enqueueRecalc } from '../jobs/dispatch.js';
+import { decideNextMove } from '../planner/nextMove.js';
 
 const sendErr = (res, e) => {
     if (e && e.status === 400) return res.status(400).json({ success: false, message: e.message });
@@ -154,11 +155,11 @@ export const getExplain = async (req, res, next) => {
     }
 };
 
-const ENERGY_BONUS = { low: { low: 6, normal: 2, high: 0 }, normal: {}, high: { high: 2 } };
-
 /**
  * GET /api/v2/tasks/next?minutes=30&energy=low
- * Deterministic available-time + energy recommendation over engine scores.
+ * Best Next Move (spec 25-26): feasibility filter + multi-factor deterministic
+ * impact over the full scope graph, with why-this / why-not explanations.
+ * Legacy recommendation/alternates shape preserved; `decision` is additive.
  * Blocked tasks are never recommended (listed as excluded for transparency).
  */
 export const getNext = async (req, res, next) => {
@@ -166,47 +167,46 @@ export const getNext = async (req, res, next) => {
         const budget = req.query.minutes !== undefined ? Number(req.query.minutes) : null;
         const energy = ['low', 'normal', 'high'].includes(req.query.energy) ? req.query.energy : 'normal';
         if (budget !== null && (!Number.isFinite(budget) || budget <= 0 || budget > 1440)) {
-            return res.status(400).json({ success: false, message: 'minutes must be 1–1440.' });
+            return res.status(400).json({ success: false, message: 'minutes must be 1-1440.' });
         }
-        const candidates = await Svc.getTopTasks(req.user.id, 20);
-        const picked = [];
-        let excludedBlocked = 0;
-        let excludedTooLong = 0;
+        const [rows, candidates] = await Promise.all([
+            Tasks.allForScoring(req.user.id),
+            Svc.getTopTasks(req.user.id, 20),
+        ]);
+        const scope = rows.map(InsightSvc.normalizeTask);
+        const withExplanations = [];
         for (const t of candidates) {
-            const expl = await Svc.explainPriority(req.user.id, t.id);
-            if (!expl || expl.blocked) {
-                excludedBlocked++;
-                continue;
-            }
-            if (budget !== null && (t.estimatedMinutes || 30) > budget) {
-                excludedTooLong++;
-                continue;
-            }
-            const energyBonus = ENERGY_BONUS[energy]?.[t.energyFit] ?? 0;
-            const why = [];
-            if (expl.breakdown.deadlineContrib >= 20) why.push('Deadline approaching');
-            if (expl.breakdown.importanceContrib >= 20) why.push('High importance');
-            if (expl.unlocks > 0) why.push(`Blocks ${expl.unlocks} task${expl.unlocks > 1 ? 's' : ''}`);
-            if (budget !== null) why.push(`Fits your ${budget}-minute window`);
-            if (energyBonus > 0) why.push(`Matches ${energy} energy`);
-            if (t.priorityTier === 'critical') why.push('Critical priority');
-            picked.push({ task: t, score: expl.score + energyBonus, energyBonus, why });
+            const explanation = await Svc.explainPriority(req.user.id, t.id);
+            withExplanations.push({ task: t, explanation });
         }
-        picked.sort((a, b) => b.score - a.score);
-        const [first, ...rest] = picked.slice(0, 3);
-        if (!first) {
+        const decision = decideNextMove(scope, withExplanations, { budgetMinutes: budget, energy });
+        if (!decision.bestNextMove) {
             return res.json({
                 success: true,
                 recommendation: null,
-                message: 'Nothing fits right now - clear a blocker or add a shorter task.',
-                excluded: { blocked: excludedBlocked, tooLong: excludedTooLong },
+                alternates: [],
+                excluded: decision.excluded,
+                decision,
+                message: decision.message,
             });
         }
+        const byId = new Map(candidates.map((t) => [String(t.id), t]));
+        const winner = decision.bestNextMove;
         res.json({
             success: true,
-            recommendation: first,
-            alternates: rest,
-            excluded: { blocked: excludedBlocked, tooLong: excludedTooLong },
+            recommendation: {
+                task: byId.get(winner.taskId),
+                score: winner.priorityScore + winner.energyBonus,
+                energyBonus: winner.energyBonus,
+                why: winner.why.map((w) => w.text),
+            },
+            alternates: decision.alternates.map((a) => ({
+                task: byId.get(a.taskId),
+                score: a.priorityScore,
+                why: a.whyNot,
+            })),
+            excluded: decision.excluded,
+            decision,
         });
     } catch (e) {
         next(e);
@@ -215,11 +215,20 @@ export const getNext = async (req, res, next) => {
 
 export const logFocusSession = async (req, res, next) => {
     try {
-        const { taskId, startedAt, endedAt, durationSeconds } = req.body;
+        const { taskId, startedAt, endedAt, durationSeconds, plannedSeconds, pausedSeconds, note, completed } = req.body;
         if (new Date(endedAt) <= new Date(startedAt)) {
             return res.status(400).json({ success: false, message: 'endedAt must be after startedAt.' });
         }
-        const session = await Sessions.log(req.user.id, { taskId, startedAt, endedAt, durationSeconds });
+        const session = await Sessions.log(req.user.id, {
+            taskId,
+            startedAt,
+            endedAt,
+            durationSeconds,
+            plannedSeconds,
+            pausedSeconds,
+            note,
+            completed,
+        });
         if (!session) return res.status(404).json({ success: false, message: 'Task not found.' });
         await bustUser(req.user.id); // weekly focus minutes feed stats
         res.status(201).json({ success: true, session });

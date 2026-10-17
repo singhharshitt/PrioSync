@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import notify from '../lib/notificationPolicy.js';
 import PrioIcon from '../components/icons/PrioIcon.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { v2Planner } from '../services/v2.js';
 import taskService from '../services/taskService.js';
 import insightsService from '../services/insights.js';
+import aiService from '../services/ai.js';
 
 const card = 'bg-[#2B1B17] rounded-3xl p-6 border border-[#FC703C]/10 text-white';
 const input =
@@ -18,6 +19,9 @@ const input =
  */
 const WhatIfPanel = () => {
   const [tasks, setTasks] = useState([]);
+  const [intentText, setIntentText] = useState('');
+  const [intent, setIntent] = useState(null);
+  const [intentBusy, setIntentBusy] = useState(false);
   const [taskId, setTaskId] = useState('');
   const [days, setDays] = useState(2);
   const [drop, setDrop] = useState(false);
@@ -40,7 +44,7 @@ const WhatIfPanel = () => {
 
   const simulate = async () => {
     if (!taskId) {
-      toast.error('Create a task first to simulate against.');
+      notify.error('Create a task first to simulate against.');
       return;
     }
     setBusy(true);
@@ -53,7 +57,7 @@ const WhatIfPanel = () => {
           { taskId, deadline: new Date(new Date(selected.deadline).getTime() + days * 86400000).toISOString() },
         ];
       } else {
-        toast.error('That task has no deadline to move - drop it instead, or set a deadline first.');
+        notify.error('That task has no deadline to move - drop it instead, or set a deadline first.');
         setBusy(false);
         return;
       }
@@ -61,7 +65,38 @@ const WhatIfPanel = () => {
       const d = await insightsService.simulate({ changes });
       setResult(d?.simulation || null);
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Simulation failed.');
+      notify.error(e?.response?.data?.message || 'Simulation failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Natural-language change -> validated mutations -> same read-only simulation. */
+  const interpret = async () => {
+    if (intentText.trim().length < 3) {
+      notify.error('Describe the change first - e.g. "push everything by 2 days".');
+      return;
+    }
+    setIntentBusy(true);
+    setIntent(null);
+    try {
+      const d = await aiService.scenarioIntent({ text: intentText.trim() });
+      setIntent(d?.intent || null);
+    } catch (e) {
+      notify.error(e?.response?.data?.message || 'Could not interpret that change.');
+    } finally {
+      setIntentBusy(false);
+    }
+  };
+
+  const simulateIntent = async () => {
+    if (!intent?.matched) return;
+    setBusy(true);
+    try {
+      const d = await insightsService.simulate({ changes: intent.changes });
+      setResult(d?.simulation || null);
+    } catch (e) {
+      notify.error(e?.response?.data?.message || 'Simulation failed.');
     } finally {
       setBusy(false);
     }
@@ -71,6 +106,45 @@ const WhatIfPanel = () => {
     <div className={card}>
       <p className="text-xs uppercase tracking-widest text-[#FC703C] font-black mb-1">What if?</p>
       <h2 className="text-xl font-black mb-4">Simulate a change - nothing moves until you say so</h2>
+      <div className="rounded-2xl bg-[#231612] border border-white/10 p-4 mb-4">
+        <p className="text-xs uppercase tracking-widest text-[#FC703C] font-black mb-2">Describe it in words</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={intentText}
+            onChange={(e) => setIntentText(e.target.value)}
+            placeholder='e.g. "push everything by 2 days" or "drop the slides task"'
+            className={input}
+          />
+          <button
+            onClick={interpret}
+            disabled={intentBusy}
+            className="px-6 py-3 bg-white/10 font-black rounded-xl hover:bg-white/15 transition-all disabled:opacity-60 whitespace-nowrap"
+          >
+            {intentBusy ? 'Reading…' : 'Interpret'}
+          </button>
+        </div>
+        {intent && (
+          <div className="mt-3 text-sm">
+            <p className="text-white/70">{intent.message}</p>
+            {intent.matched ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <code className="font-mono text-xs text-white/60 bg-black/30 rounded-lg px-2 py-1">
+                  {JSON.stringify(intent.changes)}
+                </code>
+                <button
+                  onClick={simulateIntent}
+                  disabled={busy}
+                  className="px-4 py-1.5 bg-[#FC703C] text-[#2B1B17] text-xs font-black rounded-full hover:bg-[#ff855c] transition-all disabled:opacity-60"
+                >
+                  {busy ? 'Simulating…' : 'Simulate this change'}
+                </button>
+              </div>
+            ) : (
+              <p className="text-white/40 text-xs mt-1">No change matched - try naming a task or a number of days.</p>
+            )}
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
           <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Task</span>
@@ -227,7 +301,7 @@ const PlannerFlow = () => {
 
   const handleParse = async () => {
     if (text.trim().length < 3) {
-      toast.error('Write a few words about what you need to do.');
+      notify.error('Write a few words about what you need to do.');
       return;
     }
     setParsing(true);
@@ -242,10 +316,10 @@ const PlannerFlow = () => {
       });
       setPreview(data.plan);
       if (data.plan.clarificationsNeeded?.length > 0) {
-        toast('Review the plan - a couple of details are still open.', { icon: '🔍' });
+        notify('Review the plan - a couple of details are still open.', { icon: '🔍' });
       }
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Could not understand that yet.');
+      notify.error(e?.response?.data?.message || 'Could not understand that yet.');
     } finally {
       setParsing(false);
     }
@@ -268,7 +342,7 @@ const PlannerFlow = () => {
 
   const handleConfirm = async () => {
     if (!preview || preview.tasks.length === 0) {
-      toast.error('Nothing to plan - add at least one task.');
+      notify.error('Nothing to plan - add at least one task.');
       return;
     }
     setConfirming(true);
@@ -284,10 +358,10 @@ const PlannerFlow = () => {
         reason: 'planner page confirm',
       });
       setResult(data);
-      toast.success(`Plan created - health ${data.health.score}%`);
+      notify.success(`Plan created - health ${data.health.score}%`);
       loadHistory();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Plan creation failed.');
+      notify.error(e?.response?.data?.message || 'Plan creation failed.');
     } finally {
       setConfirming(false);
     }
@@ -312,7 +386,7 @@ const PlannerFlow = () => {
           placeholder="I need to prepare for my placement. I have SQL, DSA and frontend left. My assessment is next week…"
           className={`${input} resize-y min-h-[120px]`}
         />
-        <div className="flex flex-wrap items-center gap-3 mt-4">
+      <div className="flex flex-wrap items-center gap-3 mt-4">
           <label className="flex items-center gap-2 text-sm text-white/60 font-bold">
             <PrioIcon name="clock" size={16} className="text-[#FC703C]" />
             <input

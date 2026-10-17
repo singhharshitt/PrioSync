@@ -1,10 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import notify, { setMuted } from '../lib/notificationPolicy.js';
+import {
+  createFocusSession,
+  startFocusSession,
+  pauseFocusSession,
+  resumeFocusSession,
+  stopFocusSession,
+  focusElapsedMs,
+  focusPausedMs,
+  focusProgress,
+  formatFocusClock,
+  FOCUS_RUNNING,
+  FOCUS_PAUSED,
+} from '../lib/focusSession.js';
 import PrioIcon from '../components/icons/PrioIcon.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import { v2Tasks, v2Replans, v2Recommendations } from '../services/v2.js';
 import taskService from '../services/taskService.js';
 import insightsService from '../services/insights.js';
+import aiService from '../services/ai.js';
 
 
 const toLocalInput = (iso) => {
@@ -32,7 +46,7 @@ const ReplanBanner = ({ onApplied }) => {
       setProposal(data);
       setMoves(data.moves || []);
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Could not build a proposal.');
+      notify.error(e?.response?.data?.message || 'Could not build a proposal.');
     } finally {
       setBusy(false);
     }
@@ -45,12 +59,12 @@ const ReplanBanner = ({ onApplied }) => {
         moves: moves.map((m) => ({ taskId: m.taskId, newDeadline: new Date(m.newDeadline).toISOString() })),
         reason: 'accepted from Focus replan banner',
       });
-      toast.success(`Plan updated - ${data.applied.length} task${data.applied.length === 1 ? '' : 's'} moved.`);
+      notify.success(`Plan updated - ${data.applied.length} task${data.applied.length === 1 ? '' : 's'} moved.`);
       setMissed([]);
       setProposal(null);
       onApplied?.();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Could not apply the plan.');
+      notify.error(e?.response?.data?.message || 'Could not apply the plan.');
     } finally {
       setBusy(false);
     }
@@ -206,16 +220,16 @@ const DeviationsCard = () => {
       const d = await insightsService.autoReplan({});
       const r = d?.replan;
       if (!r?.planId) {
-        toast(r?.message || 'Nothing to recover - the plan stands.');
+        notify(r?.message || 'Nothing to recover - the plan stands.');
       } else {
-        toast.success(
+        notify.success(
           `Recovery plan v${r.version} proposed: ${r.riskBefore.level} ${r.riskBefore.score} → ${r.riskAfter.level} ${r.riskAfter.score} (${r.moves.length} moves). Review it in the replan banner.`,
           { duration: 6000 }
         );
       }
       load();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Could not build a recovery plan.');
+      notify.error(e?.response?.data?.message || 'Could not build a recovery plan.');
     } finally {
       setBusy(false);
     }
@@ -246,6 +260,57 @@ const DeviationsCard = () => {
     </div>
   );
 };
+/**
+ * Focus brief: what to do now in one or two sentences. The text is narrated
+ * (AI when available, deterministic fallback otherwise) around engine facts -
+ * the numbers always come from the plan, never from the model.
+ */
+const FocusBriefCard = ({ minutes, energy }) => {
+  const [brief, setBrief] = useState(null);
+
+  const load = async () => {
+    try {
+      const d = await aiService.focusBrief({ minutes, energy });
+      setBrief(d?.brief || null);
+    } catch {
+      setBrief(null);
+    }
+  };
+
+  useEffect(() => {
+    let live = true;
+    aiService
+      .focusBrief({ minutes, energy })
+      .then((d) => {
+        if (live) setBrief(d?.brief || null);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [minutes, energy]);
+
+  if (!brief) return null;
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-3xl p-5 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-black text-white/80 flex items-center gap-2">
+          <PrioIcon name="focus" size={16} /> Brief
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-white/30">
+            {brief.source === 'ai' ? 'Narrated by AI' : 'From your plan'}
+          </span>
+          <button onClick={load} className="text-xs font-bold text-[#FC703C] hover:text-[#ff855c]">
+            Refresh
+          </button>
+        </div>
+      </div>
+      <p className="mt-2 text-white/70 leading-relaxed">{brief.text}</p>
+    </div>
+  );
+};
+
 const pill = (active) =>
   `px-4 py-2 rounded-full text-sm font-black transition-all ${
     active ? 'bg-[#FC703C] text-[#2B1B17]' : 'bg-white/10 text-white/70 hover:bg-white/15'
@@ -272,10 +337,22 @@ const FocusFlow = () => {
   const [excluded, setExcluded] = useState(null);
   const [message, setMessage] = useState('');
 
-  const [running, setRunning] = useState(false);
-  const [startedAt, setStartedAt] = useState(null);
-  const [elapsed, setElapsed] = useState(0);
+  // Focus 2.0: pure state machine drives the timer (pause time excluded).
+  const [fsm, setFsm] = useState(() => createFocusSession({}));
+  const [, setTick] = useState(0);
+  const [plannedSeconds, setPlannedSeconds] = useState(1500);
+  const [note, setNote] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
+  const timerRef = useRef(null);
   const [saving, setSaving] = useState(false);
+
+  const running = fsm.state === FOCUS_RUNNING;
+  const paused = fsm.state === FOCUS_PAUSED;
+  const sessionActive = running || paused;
+  const elapsed = Math.floor(focusElapsedMs(fsm) / 1000);
+  const pausedSeconds = Math.floor(focusPausedMs(fsm) / 1000);
+  const progress = focusProgress(fsm);
   const [overrideFor, setOverrideFor] = useState(null);
   const [explanation, setExplanation] = useState(null);
 
@@ -315,10 +392,10 @@ const FocusFlow = () => {
     try {
       const base = rec.task.deadline ? new Date(rec.task.deadline).getTime() : Date.now();
       await taskService.updateTask(rec.task.id, { deadline: new Date(base + 86400000).toISOString() });
-      toast.success('Snoozed to tomorrow.');
+      notify.success('Snoozed to tomorrow.');
       fetchNext();
     } catch {
-      toast.error('Could not snooze this task.');
+      notify.error('Could not snooze this task.');
     }
   };
 
@@ -330,13 +407,70 @@ const FocusFlow = () => {
     startFocus(task);
   };
 
+  // Mute PrioSync chatter while a session runs; errors still break through.
   useEffect(() => {
-    if (!running || !startedAt) return undefined;
-    const id = window.setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startedAt.getTime()) / 1000));
-    }, 1000);
+    setMuted(sessionActive);
+    return () => setMuted(false);
+  }, [sessionActive]);
+
+  // Repaint the clock while a session is live (machine holds the truth).
+  useEffect(() => {
+    if (fsm.state !== FOCUS_RUNNING && fsm.state !== FOCUS_PAUSED) return undefined;
+    const id = window.setInterval(() => setTick((n) => n + 1), 500);
     return () => window.clearInterval(id);
-  }, [running, startedAt]);
+  }, [fsm.state]);
+
+  // Auto-pause when the tab loses visibility - focus time stays honest.
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden) {
+        setFsm((s) => {
+          if (s.state !== FOCUS_RUNNING) return s;
+          notify('Paused - tab hidden. Resume when you are back.');
+          return pauseFocusSession(s);
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  // Fullscreen state tracking for the timer card.
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFs);
+    return () => document.removeEventListener('fullscreenchange', onFs);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    const el = timerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => notify.error('Fullscreen is not available here.'));
+    }
+  }, []);
+
+  // Shortcuts: Space pauses/resumes, F toggles fullscreen (never while typing).
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setFsm((s) => {
+          if (s.state === FOCUS_RUNNING) return pauseFocusSession(s);
+          if (s.state === FOCUS_PAUSED) return resumeFocusSession(s);
+          return s;
+        });
+      } else if (e.code === 'KeyF') {
+        toggleFullscreen();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toggleFullscreen]);
 
   const fetchNext = async () => {
     setLoading(true);
@@ -347,7 +481,7 @@ const FocusFlow = () => {
       setExcluded(data.excluded || null);
       setMessage(data.message || '');
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Could not get a recommendation.');
+      notify.error(e?.response?.data?.message || 'Could not get a recommendation.');
     } finally {
       setLoading(false);
     }
@@ -377,41 +511,37 @@ const FocusFlow = () => {
   const startFocus = (task) => {
     if (!task) return;
     setRec({ task, why: rec?.task?.id === task.id ? rec.why : [] });
-    setStartedAt(new Date());
-    setElapsed(0);
-    setRunning(true);
+    setNote('');
+    setMinimized(false);
+    setFsm(startFocusSession(createFocusSession({ taskId: task.id, plannedSeconds })));
   };
 
   const stopAndLog = async (completed) => {
-    if (!rec?.task || !startedAt) {
-      setRunning(false);
+    const activeTask = rec?.task;
+    if (!activeTask || !sessionActive) {
+      setFsm(createFocusSession({}));
       return;
     }
-    const end = new Date();
-    const durationSeconds = Math.max(1, Math.floor((end - startedAt) / 1000));
-    setRunning(false);
+    const { session: done, payload } = stopFocusSession(fsm);
+    setFsm(done);
     setSaving(true);
     try {
-      await v2Tasks.logFocusSession({
-        taskId: rec.task.id,
-        startedAt: startedAt.toISOString(),
-        endedAt: end.toISOString(),
-        durationSeconds,
-      });
+      await v2Tasks.logFocusSession({ ...payload, taskId: activeTask.id, note, completed });
       if (completed) {
-        await v2Tasks.complete(rec.task.id);
-        toast.success(`Done - ${rec.task.title} completed in ${format(durationSeconds)}.`);
+        await v2Tasks.complete(activeTask.id);
+        notify.success(`Done - ${activeTask.title} completed in ${format(payload.durationSeconds)}.`);
         setRec(null);
       } else {
-        toast.success(`Session logged - ${format(durationSeconds)}.`);
+        notify.success(`Session logged - ${format(payload.durationSeconds)}${payload.pausedSeconds > 0 ? ` (${format(payload.pausedSeconds)} paused)` : ''}.`);
       }
       fetchNext();
     } catch {
-      toast.error('Failed to save focus session.');
+      notify.error('Failed to save focus session.');
     } finally {
       setSaving(false);
-      setStartedAt(null);
-      setElapsed(0);
+      setNote('');
+      setMinimized(false);
+      setFsm(createFocusSession({}));
     }
   };
 
@@ -427,6 +557,8 @@ const FocusFlow = () => {
       <ReplanBanner onApplied={fetchNext} />
 
       <DeviationsCard />
+
+      <FocusBriefCard minutes={minutes} energy={energy} />
 
       {/* Controls */}
       <div className={card}>
@@ -477,13 +609,61 @@ const FocusFlow = () => {
           )}
 
           {/* Timer */}
-          <div className="mt-6 text-center bg-[#231612] rounded-2xl py-8 border border-white/5">
-            <div className="flex items-center justify-center gap-2 text-white/40 text-xs font-black uppercase tracking-widest mb-2">
-              <PrioIcon name="stopwatch" size={14} /> {running ? 'Focusing' : 'Ready'}
+          {minimized && sessionActive ? (
+            <div className="mt-6 flex items-center justify-center gap-4 bg-[#231612] rounded-2xl py-4 border border-white/5">
+              <span className="font-mono font-black text-2xl tabular-nums">{formatFocusClock(elapsed)}</span>
+              <span className="text-xs font-bold text-white/40 uppercase tracking-widest">
+                {running ? 'Focusing' : 'Paused'}
+              </span>
+              <button
+                onClick={() => setFsm((s) => (s.state === FOCUS_RUNNING ? pauseFocusSession(s) : resumeFocusSession(s)))}
+                className="px-4 py-2 bg-white/10 text-xs font-black rounded-full hover:bg-white/15 transition-all"
+              >
+                {running ? 'Pause' : 'Resume'}
+              </button>
+              <button
+                onClick={() => setMinimized(false)}
+                className="p-2 bg-white/10 rounded-full hover:bg-white/15 transition-all"
+                aria-label="Restore focus timer"
+              >
+                <PrioIcon name="maximize" size={14} />
+              </button>
             </div>
-            <div className="text-6xl font-black font-mono tabular-nums tracking-tight">{format(elapsed)}</div>
+          ) : (
+          <div ref={timerRef} className="mt-6 text-center bg-[#231612] rounded-2xl py-8 border border-white/5">
+            <div className="flex items-center justify-center gap-2 text-white/40 text-xs font-black uppercase tracking-widest mb-2">
+              <PrioIcon name="stopwatch" size={14} /> {running ? 'Focusing' : paused ? 'Paused' : 'Ready'}
+              {pausedSeconds > 0 && sessionActive && (
+                <span className="normal-case font-bold text-white/30">({format(pausedSeconds)} paused)</span>
+              )}
+            </div>
+            <div className="text-6xl font-black font-mono tabular-nums tracking-tight">{formatFocusClock(elapsed)}</div>
+            {sessionActive && (
+              <div className="mx-auto mt-3 h-1.5 w-48 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-[#FC703C] rounded-full transition-all"
+                  style={{ width: `${Math.round(progress * 100)}%` }}
+                />
+              </div>
+            )}
+            {!sessionActive && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <span className="text-xs font-bold text-white/40 mr-1">Plan</span>
+                {[15, 25, 50, 90].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setPlannedSeconds(m * 60)}
+                    className={`px-3 py-1 rounded-full text-xs font-black transition-all ${
+                      plannedSeconds === m * 60 ? 'bg-[#FC703C] text-[#2B1B17]' : 'bg-white/10 text-white/60 hover:bg-white/15'
+                    }`}
+                  >
+                    {m}m
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex items-center justify-center gap-3 mt-6">
-              {!running ? (
+              {!sessionActive ? (
                 <>
                   <button
                     onClick={() => acceptAndStart(rec.task)}
@@ -506,23 +686,46 @@ const FocusFlow = () => {
                 </>
               ) : (
                 <>
+                  {running ? (
+                    <button
+                      onClick={() => setFsm((s) => pauseFocusSession(s))}
+                      className="px-6 py-3 bg-white/10 font-bold rounded-full hover:bg-white/15 transition-all inline-flex items-center gap-2"
+                    >
+                      <PrioIcon name="player-pause" size={16} /> Pause
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setFsm((s) => resumeFocusSession(s))}
+                      className="px-6 py-3 bg-[#FC703C] text-[#2B1B17] font-black rounded-full hover:bg-[#ff855c] transition-all inline-flex items-center gap-2"
+                    >
+                      <PrioIcon name="player-play" size={16} /> Resume
+                    </button>
+                  )}
                   <button
-                    onClick={() => setRunning(false)}
-                    className="px-6 py-3 bg-white/10 font-bold rounded-full hover:bg-white/15 transition-all inline-flex items-center gap-2"
-                  >
-                    <PrioIcon name="player-pause" size={16} /> Pause
-                  </button>
-                  <button
-                    onClick={() => { setStartedAt(new Date()); setElapsed(0); setRunning(true); }}
+                    onClick={() => rec?.task && startFocus(rec.task)}
                     className="p-3 bg-white/10 rounded-full hover:bg-white/15 transition-all"
                     aria-label="Restart timer"
                   >
                     <PrioIcon name="rotate-clockwise" size={16} />
                   </button>
+                  <button
+                    onClick={toggleFullscreen}
+                    className="p-3 bg-white/10 rounded-full hover:bg-white/15 transition-all"
+                    aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                  >
+                    <PrioIcon name={isFullscreen ? 'minimize' : 'maximize'} size={16} />
+                  </button>
+                  <button
+                    onClick={() => setMinimized(true)}
+                    className="p-3 bg-white/10 rounded-full hover:bg-white/15 transition-all"
+                    aria-label="Minimize focus timer"
+                  >
+                    <PrioIcon name="minimize" size={16} />
+                  </button>
                 </>
               )}
             </div>
-            {(running || (!running && startedAt)) && (
+            {sessionActive && (
               <div className="flex items-center justify-center gap-3 mt-4">
                 <button
                   onClick={() => stopAndLog(true)}
@@ -540,7 +743,18 @@ const FocusFlow = () => {
                 </button>
               </div>
             )}
+            {sessionActive && (
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Session note (optional) - what did you finish?"
+                maxLength={1000}
+                className="mt-4 mx-auto block w-80 max-w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#FC703C]"
+              />
+            )}
+            <p className="mt-4 text-[11px] text-white/30 font-bold">Space pauses and resumes • F toggles fullscreen</p>
           </div>
+          )}
         </div>
       ) : (
         <div className={card}>

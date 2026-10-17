@@ -88,7 +88,7 @@ All v2 task/planner routes require a v2 token. Task writes accept optional
 | GET | `/api/v2/tasks/dag` | nodes/edges (blocked edges flagged) |
 | GET | `/api/v2/tasks/next?minutes=&energy=` | What's Next: engine picks over top-20, drops blocked/over-budget (both reported in `excluded`), energy bonus → `{recommendation, alternates, excluded}` or a friendly `recommendation: null` |
 | POST | `/api/v2/tasks/recalc` | `{reason?}` → BullMQ job, or inline if no Redis (response says which) |
-| POST | `/api/v2/tasks/focus-session` | `{taskId, startedAt, endedAt, durationSeconds}` (requires `endedAt > startedAt`) → `work_sessions` + cache bust |
+| POST | `/api/v2/tasks/focus-session` | `{taskId, startedAt, endedAt, durationSeconds, plannedSeconds?, pausedSeconds?, note?, completed?}` (requires `endedAt > startedAt`) → `work_sessions` + cache bust |
 
 `priorityScore` semantics (unchanged from v1): `0–100`, plus a `blocked` flag;
 tiers from `getPriorityTier`: `critical` (≥80), `high` (≥60), `medium` (≥35),
@@ -106,7 +106,7 @@ tiers from `getPriorityTier`: `critical` (≥80), `high` (≥60), `medium` (≥3
 | GET | `/api/v2/tasks/:id/explain` | Extended (additive): legacy `{score, tier, breakdown, blocked, unlocks}` plus `priorityExplanation: {factors, positiveFactors, negativeFactors, info, summary}` |
 | GET | `/api/v2/insights/deviations?goalId=&projectId=` | Planned-vs-actual evidence: `[{type TASK_OVERRUN\|MISSED_DEADLINE\|BLOCKED_AT_RISK, severity, taskId, title, message, ...metrics}]` — detection only, never acts |
 | GET | `/api/v2/insights/drift` | Observed behavior patterns only (no psychology): `repeated_postponement` (3+ reschedules), `chronic_underestimation` (category ≥1.3x, ≥3 samples), `fragmented_sessions` (4+ sittings, still open) — each with evidence + planning suggestion |
-| GET | `/api/v2/insights/calibration?groupBy=category\|project` | `{factor, samples, calibrated, groups: {label: {...}}}` — actual ÷ estimated from timed sessions, clamped [0.5, 3], minimum 3 samples per group before it engages |
+| GET | `/api/v2/insights/calibration?groupBy=category\|project` | `{factor, samples, calibrated, groups: {label: {...}}, uncertainty: {confidence uncalibrated/low/medium/high, p25/p50/p75, exampleRange}}` — actual ÷ estimated from timed sessions, clamped [0.5, 3], minimum 3 samples per group before it engages |
 | POST | `/api/v2/insights/auto-replan` | `{goalId?, projectId?, taskIds?, reason?}` → `{planId, version, trigger, reason, riskBefore, riskAfter, moves, impact, applied: false}` — creates a PROPOSED plan version (state in `health_details`) + `PLAN_CREATED` event; applying stays on `POST /replans/accept`, which records its own version |
 | GET | `/api/v2/insights/context-order?goalId=&projectId=&lambda=` | Dependency-safe execution order balancing priority vs context-switch cost: `{order: [{position, taskId, title, priorityScore, estimatedMinutes, category, switchCost}], totalSwitchCost, lambda}` |
 | GET | `/api/v2/insights/day-plan?goalId=&projectId=&minutes=&lambda=` | Energy-matched day thirds (morning/afternoon/evening from the user's rhythm): `{periods: [{key, label, energy, from, to, minutes, usedMinutes, tasks}], unscheduled, totalMinutes, budgetMinutes}` |
@@ -114,6 +114,18 @@ tiers from `getPriorityTier`: `critical` (≥80), `high` (≥60), `medium` (≥3
 | GET | `/api/v2/insights/commitments` | Non-personal open commitments with risk flags: `{commitments: [{taskId, title, commitmentType, stakeholder, deadline, riskFlags[], atRisk}], count, atRiskCount}` |
 | GET | `/api/v2/preferences` | Planner rhythm: `{availableMinutesPerDay, workStart, workEnd, defaultEnergy, energyMorning, energyAfternoon, energyEvening}` |
 | PUT | `/api/v2/preferences` | Partial update (at least one field; `HH:MM` validated, energy enums) → same shape |
+| GET | `/api/v2/insights/resilience?goalId=&projectId=&days=` | Plan fragility: 6 perturbations + recoveryMargin, delayToleranceDays, slack, sensitivity ladder [15,30,60,90]m, failurePoints, level HIGH/MEDIUM/LOW |
+| POST | `/api/v2/insights/resolve` | Impossible-plan detection + deterministic OPTION A-D, each priced `{riskLevel, riskScore, riskDelta, overloaded, balanceMinutes}` — advice only |
+| POST | `/api/v2/insights/recovery` | `{lostMinutes?}` → triggers + compared recovery plans A-D (strictly improving, top 3), never applied |
+| GET | `/api/v2/insights/traceability` | Goal → Project → Task → Subtask tree + `{orphanWork, orphanProjects, goalStarvation, lowImpactCompleted, blockedGoalCritical}` |
+| GET | `/api/v2/insights/efficiency?goalId=` | Completed volume vs goal-critical contribution in factual language: `{completedTasks, goalCriticalCompleted, goalCriticalTotal, goalCriticalRatio, observation, byGoal}` |
+| GET | `/api/v2/insights/plan-debt` | Accumulated strain (30d window): postponed, repeated moves, skips, compressed sessions (<15m proxy, or <50% of `planned_seconds`), unresolved deps + `{recoveryMinutes, recoveryText}` |
+| GET | `/api/v2/insights/allocation?days=&perDay=` | Multi-project capacity split by deadline demand × risk + priority + continuity: `{placements, scarce, rationale}` — advice only |
+| GET | `/api/v2/ai/status` | `{configured, provider, models, defaultModel}` — no key required |
+| POST | `/api/v2/ai/scenario-intent` | NL → validated scenario mutations `{changes, matched, source, message}` — never applied; strict schema rejects unknown keys |
+| POST | `/api/v2/ai/focus-brief` | Fact-locked 2-3 sentence brief `{brief: {text, source, facts}}` — deterministic fallback when the provider fails or drops a fact |
+| POST | `/api/v2/ai/session-reflection` | Fact-locked reflection on one session `{reflection: {text, source, facts}}` |
+| POST | `/api/v2/ai/smart-notes` | Rough notes → `{summary, actionItems}` (validated shape, length-capped) |
 
 Calibration: `factor = actual ÷ estimated` over timed focus sessions on
 completed work, clamped to [0.5, 3]; fewer than 3 samples → factor 1.0,

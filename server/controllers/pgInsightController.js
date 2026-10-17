@@ -104,3 +104,59 @@ export const getCommitments = async (req, res, next) => {
         next(e);
     }
 };
+
+export const getResilience = async (req, res, next) => {
+    try {
+        res.json({ success: true, resilience: await Insights.getResilience(req.user.id, req.validatedQuery) });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const resolveConstraints = async (req, res, next) => {
+    try {
+        res.json({ success: true, ...(await Insights.resolveConstraints(req.user.id, req.body)) });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getRecovery = async (req, res, next) => {
+    try {
+        res.json({ success: true, recovery: await Insights.getRecovery(req.user.id, req.body) });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getTraceability = async (req, res, next) => {
+    try {
+        res.json({ success: true, ...(await Insights.getTraceability(req.user.id)) });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getEfficiency = async (req, res, next) => {
+    try {
+        res.json({ success: true, ...(await Insights.getEfficiency(req.user.id, req.validatedQuery)) });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getPlanDebt = async (req, res, next) => {
+    try {
+        res.json({ success: true, planDebt: await Insights.getPlanDebt(req.user.id) });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getAllocation = async (req, res, next) => {
+    try {
+        res.json({ success: true, allocation: await Insights.getAllocation(req.user.id, req.validatedQuery) });
+    } catch (e) {
+        next(e);
+    }
+};

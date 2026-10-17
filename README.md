@@ -23,7 +23,7 @@ PrioSync is mid-migration from **MERN to PERN**, deliberately and incrementally:
 | Cache/Jobs | — | Redis cache-aside (`X-Cache`) + BullMQ recalc queue, both degrade gracefully |
 | Frontend | — | **Fully cut over to `/api/v2`**: Dashboard, Tasks, Dependencies, Profile, Planner, Focus — one session token, no Mongo dependency |
 | Observability | Morgan | Pino JSON logs, `/api/metrics` (Prometheus format) |
-| Tests | — | Vitest: 25 unit + 4 gated PG integration (`29/29`) |
+| Tests | — | Vitest: 161 unit + 24 gated PG integration (`185/185`), plus 7 client lib tests (`npm test` in `client/`) |
 
 v1 routes remain mounted for the migration contract (they 503 without MongoDB);
 the SPA no longer calls them. Redis/BullMQ are optional (the API runs fully
@@ -119,8 +119,39 @@ task managers punt on - all computed, all explainable, no LLM in the loop:
   removed / deadline moves with growth math, per goal or workload
 - **Commitments** - typed promises (team/client/academic/deadline + optional
   stakeholder) with an at-risk listing (`GET /insights/commitments`)
+- **Best Next Move** (`GET /tasks/next`) - feasibility filter plus 8-factor
+  deterministic impact over the dependency graph, with why-this / why-not
+  tradeoffs on the winner and every alternate; blocked or over-window tasks
+  are excluded, never recommended
+- **Plan resilience** (`GET /insights/resilience`) - 6 perturbations,
+  recovery margin, delay tolerance, sensitivity ladder, named failure points
+- **Constraint resolution** (`POST /insights/resolve`) - impossible-plan
+  detection with priced OPTION A-D escapes (advice only, never applied)
+- **Recovery plans** (`POST /insights/recovery`) - interruption/deadline/
+  dependency triggers priced into compared A-D recoveries, top 3 kept
+- **Goal traceability** (`GET /insights/traceability`) - Goal → Project →
+  Task → Subtask tree with orphan work, starved goals, low-impact completions,
+  and blocked goal-critical work
+- **Progress efficiency** (`GET /insights/efficiency`) - completed volume vs
+  goal-critical contribution, stated factually
+- **Plan debt** (`GET /insights/plan-debt`) - postponed work, repeated skips,
+  compressed sessions, unresolved dependencies, with a recovery estimate
+- **Uncertainty ranges** (inside `GET /insights/calibration`) - p25/p75
+  estimate ranges from your own timed history, with honest confidence levels
+- **Multi-project allocation** (`GET /insights/allocation`) - daily capacity
+  split by deadline demand, risk, and continuity (advice only)
 
-The Dashboard's "Am I on track?" strip (risk, bottleneck, capacity) and the
+## AI layer (optional, narrates - never decides)
+
+Pollinations backs four endpoints under `/api/v2/ai` (`status`,
+`scenario-intent`, `focus-brief`, `session-reflection`, `smart-notes`).
+AI understands, algorithms decide: every narration is fact-locked against
+engine numbers (any mismatch falls back to a deterministic template), and
+every intent returns validated data the UI still asks you to confirm.
+Without a key (`POLLINATIONS_API_KEY` or `POLLEN_API`) everything degrades
+to the deterministic path - verified by test and by live failure drill.
+
+The Dashboard's "Am I on track?" strip (risk, bottleneck, capacity, plan debt) and the
 Focus recommendation's score sentence are the UI surface. The Dependencies
 graph highlights the critical path (dashed ring) and the primary bottleneck
 (red ring + tag); task cards expand to show the factor bars behind their

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import PrioIcon from '../components/icons/PrioIcon.jsx';
-import { toast } from 'react-hot-toast';
+import notify from '../lib/notificationPolicy.js';
 import Sidebar from '../components/Sidebar.jsx';
 // import Navbar from '../components/Navbar.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -42,9 +42,9 @@ const ProfilePage = () => {
         energyEvening: prefs.energyEvening,
       });
       setPrefs(d?.preferences || prefs);
-      toast.success('Planning rhythm saved.');
+      notify.success('Planning rhythm saved.');
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Failed to save rhythm.');
+      notify.error(e?.response?.data?.message || 'Failed to save rhythm.');
     } finally {
       setPrefsSaving(false);
     }
@@ -58,7 +58,7 @@ const ProfilePage = () => {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('Name cannot be empty.');
+      notify.error('Name cannot be empty.');
       return;
     }
 
@@ -66,9 +66,9 @@ const ProfilePage = () => {
     try {
       const { data } = await authService.updateProfile({ name: name.trim() });
       updateUser(data.user);
-      toast.success('Profile updated successfully!');
+      notify.success('Profile updated successfully!');
     } catch {
-      toast.error('Failed to update profile.');
+      notify.error('Failed to update profile.');
     } finally {
       setSaving(false);
     }

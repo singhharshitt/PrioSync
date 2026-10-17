@@ -58,6 +58,11 @@ export const focusSessionSchema = z.object({
     startedAt: z.string().datetime({ offset: true }),
     endedAt: z.string().datetime({ offset: true }),
     durationSeconds: z.number().int().min(1).max(86400),
+    // Focus 2.0 (phase 4): planned length, accumulated pause time, session note.
+    plannedSeconds: z.number().int().min(60).max(86400).optional(),
+    pausedSeconds: z.number().int().min(0).max(86400).optional(),
+    note: z.string().max(1000).optional(),
+    completed: z.boolean().optional(),
 });
 
 export const validate = (schema) => (req, res, next) => {

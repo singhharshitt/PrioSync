@@ -23,6 +23,13 @@ import { analyzeScope } from '../planner/scope.js';
 import { proposeReplan } from './replanService.js';
 import { buildPriorityExplanation } from '../planner/priorityExplain.js';
 import { explainPriority } from './pgTaskService.js';
+import { assessPlanResilience } from '../planner/resilience.js';
+import { generateResolutionOptions } from '../planner/constraints.js';
+import { buildRecoveryPlans } from '../planner/recovery.js';
+import { buildTraceability, progressEfficiency } from '../planner/traceability.js';
+import { computePlanDebt } from '../planner/planDebt.js';
+import { buildUncertainty } from '../planner/uncertainty.js';
+import { allocateCapacity } from '../planner/allocation.js';
 import logger from '../utils/logger.js';
 
 const DEFAULT_CAPACITY_PER_DAY = 240;
@@ -38,6 +45,9 @@ export const normalizeTask = (row) => ({
     dependencies: (row.dependencies || []).map((d) => (typeof d === 'object' && d !== null ? d.id || d._id : d)),
     priorityScore: row.priority_score ?? 0,
     priorityTier: row.priority_tier,
+    importance: row.importance,
+    urgency: row.urgency,
+    difficulty: row.difficulty,
     category: row.category || 'General',
     energyFit: row.energy_fit || 'normal',
     commitmentType: row.commitment_type || 'personal',
@@ -86,6 +96,8 @@ export const getCalibration = async (userId, { groupBy = null } = {}) => {
         };
     };
     const out = { ...factorOf(timed), groups: {} };
+    // Spec section 38: ratio distribution (p25/p75 + confidence), additive.
+    out.uncertainty = buildUncertainty(timed.map((x) => x.secs / 60 / Number(x.est)));
     if (groupBy === 'category' || byProject) {
         const per = new Map();
         for (const row of timed) {
@@ -421,4 +433,144 @@ export const getCommitments = async (userId) => {
     });
     const atRisk = list.filter((c) => c.atRisk).length;
     return { commitments: list, count: list.length, atRiskCount: atRisk };
+};
+
+/** Plan resilience / fragility with sensitivity ladder (spec sections 27-28). */
+export const getResilience = async (userId, { goalId = null, projectId = null, days = 7 } = {}) => {
+    const started = Date.now();
+    const [tasks, capacityPerDay, calibration] = await Promise.all([
+        getScopeTasks(userId, { goalId, projectId }),
+        getCapacityPerDay(userId),
+        getCalibration(userId),
+    ]);
+    const out = assessPlanResilience(tasks, {
+        capacityPerDay,
+        calibrationFactor: calibration.factor,
+        calibrationSamples: calibration.samples,
+        horizonDays: days,
+    });
+    logger.info(
+        { userId, level: out.resilience.level, failurePoints: out.failurePoints, ms: Date.now() - started },
+        'planner.resilience.calculated'
+    );
+    return { ...out, scope: { goalId, projectId } };
+};
+
+/** Impossible-plan detection + deterministic OPTION A-D (spec sections 31-32). */
+export const resolveConstraints = async (userId, { goalId = null, projectId = null, days = 7 } = {}) => {
+    const started = Date.now();
+    const [tasks, capacityPerDay, calibration] = await Promise.all([
+        getScopeTasks(userId, { goalId, projectId }),
+        getCapacityPerDay(userId),
+        getCalibration(userId),
+    ]);
+    const out = generateResolutionOptions(tasks, { capacityPerDay, days, calibrationFactor: calibration.factor });
+    logger.info(
+        { userId, infeasible: out.detection?.infeasible, options: out.options.length, ms: Date.now() - started },
+        'planner.constraints.resolved'
+    );
+    return { ...out, scope: { goalId, projectId, taskCount: tasks.length } };
+};
+
+/** Recovery plans priced and compared, never applied (spec sections 33-34). */
+export const getRecovery = async (userId, { goalId = null, projectId = null, lostMinutes = 0 } = {}) => {
+    const started = Date.now();
+    const [tasks, sessions, capacityPerDay, calibration] = await Promise.all([
+        getScopeTasks(userId, { goalId, projectId }),
+        Sessions.listByUser(userId),
+        getCapacityPerDay(userId),
+        getCalibration(userId),
+    ]);
+    const deviations = detectDeviations(tasks, sessions);
+    const out = buildRecoveryPlans(tasks, {
+        capacityPerDay,
+        calibrationFactor: calibration.factor,
+        horizonDays: 7,
+        lostMinutes,
+        deviations,
+    });
+    logger.info(
+        { userId, triggers: out.triggers.length, plans: out.plans.length, ms: Date.now() - started },
+        'planner.recovery.built'
+    );
+    return { ...out, scope: { goalId, projectId, taskCount: tasks.length } };
+};
+
+/** Goal -> Project -> Task -> Subtask traceability + gap detections (spec section 35). */
+export const getTraceability = async (userId) => {
+    const pool = getPool();
+    const [goalsR, projectsR, rows] = await Promise.all([
+        pool.query(`SELECT id, title, created_at FROM goals WHERE user_id = $1 ORDER BY created_at`, [userId]),
+        pool.query(`SELECT id, title, goal_id FROM projects WHERE user_id = $1`, [userId]),
+        Tasks.allForScoring(userId),
+    ]);
+    const tasks = rows.map((r) => ({
+        ...normalizeTask(r),
+        parentTaskId: r.parent_task_id,
+        completedAt: r.completed_at,
+        updatedAt: r.updated_at,
+    }));
+    const out = buildTraceability({
+        goals: goalsR.rows.map((g) => ({ id: g.id, title: g.title, createdAt: g.created_at })),
+        projects: projectsR.rows.map((p) => ({ id: p.id, title: p.title, goalId: p.goal_id })),
+        tasks,
+    });
+    logger.info(
+        { userId, orphans: out.summary.orphanWorkCount, starved: out.summary.starvedGoalCount, blockedCritical: out.summary.blockedCriticalCount },
+        'planner.traceability.built'
+    );
+    return out;
+};
+
+/** Completed volume vs goal-critical contribution, factual language (spec section 36). */
+export const getEfficiency = async (userId, { goalId = null } = {}) => {
+    const pool = getPool();
+    const [goalsR, rows] = await Promise.all([
+        pool.query(`SELECT id, title FROM goals WHERE user_id = $1`, [userId]),
+        Tasks.allForScoring(userId),
+    ]);
+    let tasks = rows.map(normalizeTask);
+    if (goalId) tasks = tasks.filter((t) => t.goalId === goalId);
+    const goals = goalId
+        ? goalsR.rows.filter((g) => g.id === goalId).map((g) => ({ id: g.id, title: g.title }))
+        : goalsR.rows.map((g) => ({ id: g.id, title: g.title }));
+    return { ...progressEfficiency({ goals, tasks }), goalId };
+};
+
+/** Postponed work, skips, compressed sessions, unresolved deps (spec section 37). */
+export const getPlanDebt = async (userId) => {
+    const [rows, sessions, events, calibration] = await Promise.all([
+        Tasks.allForScoring(userId),
+        Sessions.listByUser(userId),
+        Events.listByUser(userId, { types: ['TASK_RESCHEDULED', 'DEADLINE_CHANGED', 'FOCUS_SKIPPED'] }),
+        getCalibration(userId),
+    ]);
+    const tasks = rows.map(normalizeTask);
+    const blockedWork = calculateBlockedWork(tasks, { calibrationFactor: calibration.factor });
+    const out = computePlanDebt({ tasks, events, sessions, blockedWork });
+    logger.info({ userId, items: out.items.length, recoveryMinutes: out.recoveryMinutes }, 'planner.plan_debt.computed');
+    return out;
+};
+
+/** Calibrated uncertainty narrative (spec section 38, additive on calibration). */
+export const getUncertainty = async (userId) => getCalibration(userId);
+
+/** Multi-project capacity allocation advice, never applied (spec section 39). */
+export const getAllocation = async (userId, { days = 1, perDay = null } = {}) => {
+    const [rows, capacityPerDay, calibration] = await Promise.all([
+        Tasks.allForScoring(userId),
+        getCapacityPerDay(userId, perDay),
+        getCalibration(userId),
+    ]);
+    // Calibrate estimates for allocation only - production rows untouched.
+    const tasks = rows.map((r) => {
+        const t = normalizeTask(r);
+        return { ...t, estimatedMinutes: Math.round((t.estimatedMinutes || 30) * calibration.factor) };
+    });
+    const out = allocateCapacity(tasks, { capacityPerDay, days });
+    logger.info(
+        { userId, scarce: out.scarce, totalDemand: out.totalDemand, totalAllocated: out.totalAllocated, days },
+        'planner.allocation.computed'
+    );
+    return { ...out, calibration: { factor: calibration.factor, samples: calibration.samples } };
 };

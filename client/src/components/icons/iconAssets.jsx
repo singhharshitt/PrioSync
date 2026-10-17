@@ -213,6 +213,16 @@ export const TABLER_ASSETS = {
       <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16"/>
     </>
   ),
+  'tabler_maximize': (
+    <>
+      <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2m8-16h2a2 2 0 0 1 2 2v2m-4 12h2a2 2 0 0 0 2-2v-2"/>
+    </>
+  ),
+  'tabler_minimize': (
+    <>
+      <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M15 19v-2a2 2 0 0 1 2-2h2M15 5v2a2 2 0 0 0 2 2h2M5 15h2a2 2 0 0 1 2 2v2M5 9h2a2 2 0 0 0 2-2V5"/>
+    </>
+  ),
   'tabler_player-pause': (
     <>
       <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M6 6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm8 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1z"/>

@@ -206,6 +206,37 @@ The model may not emit scores, ranks, schedules, SQL, or commands; user text is
 data (prompt-injection clause in `ai/plannerPrompt.js`). Failures are typed
 502s with a heuristic fallback path — never silent degradation.
 
+### Pollinations layer (optional narrators + intents)
+
+- `ai/aiModels.js`: model allowlist, `POLLINATIONS_API_KEY` with `POLLEN_API`
+  fallback, safe model resolution (requested → env → default).
+- `ai/provider.js`: native-fetch OpenAI-compatible client; every failure is a
+  typed `AiUnavailableError` (`not_configured|auth|rate_limited|upstream|
+  timeout|network|bad_json|bad_output`) so callers fall back deterministically.
+  Guarantees the word "json" in messages for `json_object` response mode
+  (Azure-backed gateways 400 otherwise - found live, regression-tested).
+- `ai/narrator.js`: fact-lock narration - the model must return
+  `{"text": ...}` (shape pinned) and every engine fact must survive in the
+  text (numbers verbatim, titles word-level); any mismatch → deterministic
+  template. AI explains, numbers come from the engines.
+- `ai/aiIntents.js`: NL → validated scenario mutations (strict schema, unknown
+  keys reject the whole result), smart notes, focus briefs, session
+  reflections. Nothing applies changes; the client still confirms.
+- Served at `/api/v2/ai/*` (`status`, `scenario-intent`, `focus-brief`,
+  `session-reflection`, `smart-notes`); consent via
+  `user_preferences.ai_narration`.
+
+### Focus 2.0 (client)
+
+- `client/src/lib/focusSession.js`: pure idle → running ↔ paused → done
+  machine (injected clock, pause excluded from elapsed, emits the
+  focus-session payload with `plannedSeconds`/`pausedSeconds`).
+- `client/src/lib/notificationPolicy.js`: every toast flows through one
+  policy (severity durations, future mute/queue point). Tested with vitest
+  (`npm test` in `client/`).
+- FocusPage: pause/resume, visibility auto-pause, planned-length pills,
+  session notes, fullscreen timer, Space/F shortcuts.
+
 ## Cache & jobs
 
 - Cache-aside on `GET top` (60s) / `stats` (120s), `X-Cache: HIT/MISS`,
@@ -228,9 +259,10 @@ in prod).
 |---|---|---|
 | PG round-trip | ~250ms | Neon from dev sandbox (`priosync_db_latency_ms_sum`) |
 | Register latency | ~1.5s | bcrypt-12 dominates (honestly flagged `slow`) |
-| Unit suite | ~3s | 25 tests, no network |
-| PG integration | ~50s | 4 flows, latency-bound |
-| `vite build` | ~13s | 2453 modules |
+| Unit suite | ~4s | 161 tests, no network |
+| PG integration | ~155s | 24 files / 185 tests, latency-bound |
+| Client lib tests | <1s | 7 tests (`vitest run --environment node`) |
+| `vite build` | ~10s | 2453 modules |
 | Images | api 292MB, web 97MB | `npm ci --omit=dev`, nginx static |
 
 No invented benchmarks; re-measure with `EXPLAIN ANALYZE` + `/api/metrics`

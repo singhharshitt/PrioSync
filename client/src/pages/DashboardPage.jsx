@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import notify from '../lib/notificationPolicy.js';
 import PrioIcon from '../components/icons/PrioIcon.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import TaskCard from '../components/TaskCard.jsx';
@@ -12,6 +12,7 @@ import LoadingSkeleton, { ChartSkeleton } from '../components/LoadingSkeleton.js
 import useTasks from '../hooks/useTasks.js';
 import taskService from '../services/taskService.js';
 import insightsService from '../services/insights.js';
+import aiService from '../services/ai.js';
 
 // Real-time hook for live updates
 const useRealtime = (callback, interval = 30000) => {
@@ -118,28 +119,29 @@ const RISK_STYLE = {
  * intelligence API (risk, bottleneck, capacity). Skeleton while loading,
  * silent when the backend has no opinion (empty workload).
  */
-const InsightStrip = ({ risk, bottlenecks, capacity, loading: loadingInsights }) => {
+const InsightStrip = ({ risk, bottlenecks, capacity, planDebt, loading: loadingInsights }) => {
   if (loadingInsights) {
     return (
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 mt-6 relative z-30">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map((i) => (
             <div key={i} className="h-28 bg-[#2B1B17]/40 rounded-3xl animate-pulse" />
           ))}
         </div>
       </div>
     );
   }
-  if (!risk && !bottlenecks && !capacity) return null;
+  if (!risk && !bottlenecks && !capacity && !planDebt) return null;
 
   const level = risk?.riskLevel || 'LOW';
   const style = RISK_STYLE[level] || RISK_STYLE.LOW;
   const primary = bottlenecks?.primary || null;
   const overloaded = capacity?.overloaded;
+  const debt = planDebt?.planDebt || null;
 
   return (
     <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 mt-6 relative z-30">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[#2B1B17] rounded-3xl p-5 border border-[#FC703C]/10">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">Deadline risk</span>
@@ -195,6 +197,24 @@ const InsightStrip = ({ risk, bottlenecks, capacity, loading: loadingInsights })
             <p className="text-sm text-white/70 leading-relaxed">Capacity looks fine.</p>
           )}
         </div>
+
+        <div className="bg-[#2B1B17] rounded-3xl p-5 border border-[#FC703C]/10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black text-[#CCC4BE] uppercase tracking-wider">Plan debt</span>
+            {debt && debt.recoveryMinutes > 0 ? (
+              <span className="text-xs font-black px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-300 font-mono">
+                {debt.recoveryText}
+              </span>
+            ) : (
+              <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+            )}
+          </div>
+          <p className="text-sm text-white/70 leading-relaxed line-clamp-3">
+            {!debt || debt.items.length === 0
+              ? 'No accumulated strain - the plan is clean.'
+              : debt.items[0].detail}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -218,7 +238,7 @@ const DashboardPage = () => {
   const [focusSessionSaving, setFocusSessionSaving] = useState(false);
   const [focusSessionTask, setFocusSessionTask] = useState(null);
   const [focusSessionSummary, setFocusSessionSummary] = useState(null);
-  const [insights, setInsights] = useState({ risk: null, bottlenecks: null, capacity: null });
+  const [insights, setInsights] = useState({ risk: null, bottlenecks: null, capacity: null, planDebt: null });
   const [insightsLoading, setInsightsLoading] = useState(true);
   const heroRef = useRef(null);
 
@@ -230,15 +250,17 @@ const DashboardPage = () => {
     insightsAtRef.current = Date.now();
     setInsightsLoading(true);
     try {
-      const [risk, bottlenecks, capacity] = await Promise.all([
+      const [risk, bottlenecks, capacity, planDebt] = await Promise.all([
         insightsService.risk().catch(() => null),
         insightsService.bottlenecks().catch(() => null),
         insightsService.capacity().catch(() => null),
+        aiService.planDebt().catch(() => null),
       ]);
       setInsights({
         risk: risk?.risk || null,
         bottlenecks: bottlenecks ? { primary: bottlenecks.primary } : null,
         capacity: capacity?.capacity || null,
+        planDebt: planDebt || null,
       });
     } finally {
       setInsightsLoading(false);
@@ -319,7 +341,7 @@ const DashboardPage = () => {
 
   const handleDelete = async (id) => {
     if (!id) {
-      toast.error('Unable to delete task: missing task id.');
+      notify.error('Unable to delete task: missing task id.');
       return;
     }
     if (!confirm('Delete this task?')) return;
@@ -329,7 +351,7 @@ const DashboardPage = () => {
 
   const handleStatusChange = async (id, status) => {
     if (!id) {
-      toast.error('Unable to update task: missing task id.');
+      notify.error('Unable to update task: missing task id.');
       return;
     }
     await updateTask(id, { status });
@@ -355,13 +377,13 @@ const DashboardPage = () => {
 
     if (!focusSessionActive) {
       if (!activeFocusTask) {
-        toast.error('No active task available for focus session.');
+        notify.error('No active task available for focus session.');
         return;
       }
 
       const focusTaskId = activeFocusTask._id || activeFocusTask.id;
       if (!focusTaskId) {
-        toast.error('Unable to start focus session: task id is missing.');
+        notify.error('Unable to start focus session: task id is missing.');
         return;
       }
 
@@ -405,7 +427,7 @@ const DashboardPage = () => {
       await fetchStats();
       setLastUpdated(new Date());
     } catch {
-      toast.error('Failed to save focus session.');
+      notify.error('Failed to save focus session.');
     } finally {
       setFocusSessionSaving(false);
     }
@@ -413,12 +435,12 @@ const DashboardPage = () => {
 
   const handleMarkFocusedTaskCompleted = async () => {
     if (!focusSessionSummary?.taskId) {
-      toast.error('No focus session task available to complete.');
+      notify.error('No focus session task available to complete.');
       return;
     }
 
     if (focusSessionSummary.durationSeconds < MIN_FOCUS_COMPLETE_SECONDS) {
-      toast.error('Warning: focus session is too short to mark task completed immediately.');
+      notify.error('Warning: focus session is too short to mark task completed immediately.');
       return;
     }
 
@@ -604,6 +626,7 @@ const DashboardPage = () => {
           risk={insights.risk}
           bottlenecks={insights.bottlenecks}
           capacity={insights.capacity}
+          planDebt={insights.planDebt}
           loading={insightsLoading}
         />
 

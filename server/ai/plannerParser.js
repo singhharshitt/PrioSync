@@ -57,8 +57,19 @@ const EFFORT_RULES = [
     [/\b(clean|cook|shop|laundry|chore)\b/, 30],
 ];
 
+/** Explicit duration ("for 2 hours", "takes 30 minutes") beats category guesses. */
+const sniffExplicitMinutes = (t) => {
+    const h = t.match(/\b(?:for|takes?|about|around|~)\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/);
+    if (h) return Math.max(5, Math.min(1440, Math.round(Number(h[1]) * 60)));
+    const m = t.match(/\b(?:for|takes?|about|around|~)\s*(\d+)\s*(?:minutes?|mins?|m)\b/);
+    if (m) return Math.max(5, Math.min(1440, Number(m[1])));
+    return null;
+};
+
 const guessEffort = (title) => {
     const t = title.toLowerCase();
+    const explicit = sniffExplicitMinutes(t);
+    if (explicit) return explicit;
     for (const [re, mins] of EFFORT_RULES) if (re.test(t)) return mins;
     return 30;
 };
@@ -155,8 +166,13 @@ export const heuristicParse = (text, context = {}) => {
     // sole candidate (a one-liner becomes the goal and we ask for specifics).
     // A multi-line list keeps every line - losing a real task is worse than
     // a goal that shares a title with its first task.
+    // If the drop would leave ZERO tasks, fall back to keeping the phrase:
+    // aiPlanSchema requires at least one task, and an empty preview would
+    // dead-end the Planner page. The tasks clarification below still fires.
     const dropGoalPhrase = structured || all.length <= 1;
-    const phrases = all.filter((p) => !(dropGoalPhrase && norm(p) === norm(goal)));
+    const kept = all.filter((p) => !(dropGoalPhrase && norm(p) === norm(goal)));
+    const fellBackToGoal = kept.length === 0 && all.length > 0;
+    const phrases = fellBackToGoal ? all : kept;
     const tasks = phrases.map((p, i) => ({
         key: `t${i + 1}`,
         title: p.charAt(0).toUpperCase() + p.slice(1),
@@ -186,7 +202,7 @@ export const heuristicParse = (text, context = {}) => {
             question: 'How much time can you give this per day? (e.g. 60, 120, 240 minutes)',
         });
     }
-    if (tasks.length === 0) {
+    if (tasks.length === 0 || fellBackToGoal) {
         clarificationsNeeded.push({ field: 'tasks', question: 'What specifically needs doing? List a few items.' });
     }
     return {
@@ -223,12 +239,24 @@ export const parseBrainDump = async (text, context = {}, mode = 'auto') => {
     } else {
         raw = heuristicParse(clean, context);
         source = 'heuristic';
+        // Pure context/state input ("my assessment is next week") yields no
+        // tasks. Surface a friendly 400 - NOT the schema's 502 "AI output
+        // failed validation", which was misleading and unactionable.
+        if (raw.tasks.length === 0) {
+            throw {
+                status: 400,
+                message:
+                    'Could not find any tasks in that text. Describe what needs doing, e.g. "Finish report by Friday for 2 hours".',
+            };
+        }
     }
     const parsed = aiPlanSchema.safeParse(raw);
     if (!parsed.success) {
         throw {
             status: 502,
-            message: `AI output failed validation: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ')}`,
+            message: `${source === 'ai' ? 'AI output' : 'Parsed plan'} failed validation: ${parsed.error.issues
+                .map((i) => `${i.path.join('.')}: ${i.message}`)
+                .join(', ')}`,
         };
     }
     // Enforce key integrity deterministically (never trust model/task keys blindly).

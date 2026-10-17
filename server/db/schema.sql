@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     CHECK (energy_afternoon IN ('low','normal','high')),
   energy_evening TEXT NOT NULL DEFAULT 'low'
     CHECK (energy_evening IN ('low','normal','high')),
+  ai_narration BOOLEAN NOT NULL DEFAULT true,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -160,6 +161,9 @@ CREATE TABLE IF NOT EXISTS work_sessions (
   ended_at TIMESTAMPTZ NOT NULL,
   duration_seconds INT NOT NULL CHECK (duration_seconds > 0),
   completed BOOLEAN NOT NULL DEFAULT false,
+  planned_seconds INT CHECK (planned_seconds IS NULL OR planned_seconds > 0),
+  paused_seconds INT NOT NULL DEFAULT 0 CHECK (paused_seconds >= 0),
+  note TEXT NOT NULL DEFAULT '',
   CHECK (ended_at > started_at)
 );
 CREATE INDEX IF NOT EXISTS ix_sessions_user_end ON work_sessions(user_id, ended_at DESC);

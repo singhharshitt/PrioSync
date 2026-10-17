@@ -40,10 +40,25 @@ describe('heuristic planner parser', () => {
         expect(tasks.map((t) => t.title)).toEqual(['Send newsletter']);
     });
 
-    it('keeps the goal-only flow for a single-liner', () => {
+    it('keeps a single-liner as an editable task and still asks for specifics', () => {
         const { tasks, clarificationsNeeded } = heuristicParse('Prepare demo', {});
-        expect(tasks).toHaveLength(0);
+        expect(tasks).toHaveLength(1);
+        expect(tasks[0].title).toBe('Prepare demo');
         expect(clarificationsNeeded.some((c) => c.field === 'tasks')).toBe(true);
+    });
+
+    it('parses a one-liner end-to-end with explicit duration and weekday deadline', async () => {
+        const { plan, source } = await parseBrainDump('finish report by friday for 2 hours', {}, 'heuristic');
+        expect(source).toBe('heuristic');
+        expect(plan.tasks).toHaveLength(1);
+        expect(plan.tasks[0].estimatedMinutes).toBe(120);
+        expect(plan.goal.deadline).not.toBeNull();
+    });
+
+    it('rejects pure-context input with an actionable 400 (not a schema 502)', async () => {
+        await expect(
+            parseBrainDump('My assessment is next week. I feel stuck.', {}, 'heuristic')
+        ).rejects.toMatchObject({ status: 400, message: expect.stringContaining('tasks') });
     });
 
     it('rejects near-empty input', async () => {

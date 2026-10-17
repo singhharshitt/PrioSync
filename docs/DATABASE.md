@@ -139,6 +139,17 @@ rows are unaffected, enforced by CHECKs added under guards:
 Applied with `node db/migrate.js` (ledger in `schema_migrations`,
 re-runnable). `schema.sql` carries the same columns for fresh installs.
 
+## Focus 2.0 columns (migration 002)
+
+- `work_sessions`: `planned_seconds` (nullable), `paused_seconds`
+  (default 0), `note` (default '') - planned vs actual feeds the plan-debt
+  compression check (actual < 50% of plan); pause time is excluded from
+  focus duration everywhere.
+- `user_preferences`: `ai_narration` (default true) - per-user consent
+  for AI narration; the deterministic text is always served regardless.
+
+Applied with `node db/migrate.js` like 001. `schema.sql` updated in lockstep.
+
 ## Migration runbook (Mongo → Postgres)
 
 Script: `server/db/migrate-mongo-to-postgres.js` — idempotent
