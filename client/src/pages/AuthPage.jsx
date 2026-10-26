@@ -386,43 +386,6 @@ const AuthPage = () => {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#2B1B17]/10" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-3 text-xs text-[#2B1B17]/40 bg-white/50 backdrop-blur-sm">
-                or
-              </span>
-            </div>
-          </div>
-
-          {/* Social Login */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { icon: 'mail', label: 'Google', color: 'hover:bg-red-50 hover:border-red-200' },
-              { icon: 'github', label: 'GitHub', color: 'hover:bg-gray-100 hover:border-gray-300' },
-              { icon: 'twitter', label: 'Twitter', color: 'hover:bg-blue-50 hover:border-blue-200' }
-            ].map(({ icon, label, color }) => (
-              <button
-                key={label}
-                type="button"
-                className={`
-                  h-10 flex items-center justify-center gap-1.5 
-                  bg-white/50 border border-[#2B1B17]/10 
-                  rounded-xl text-[#2B1B17]/70 
-                  ${color}
-                  hover:text-[#2B1B17] hover:shadow-[2px_2px_0_#452215]
-                  active:shadow-none active:translate-x-0.5 active:translate-y-0.5
-                  transition-all duration-150 group
-                `}
-              >
-                {<PrioIcon name={icon} className='w-4 h-4 group-hover:scale-110 transition-transform' />}
-                <span className="text-xs hidden sm:inline font-medium">{label}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Footer Links */}

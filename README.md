@@ -1,73 +1,245 @@
-# PrioSync — Turn chaos into your next move
+<div align="center">
 
-> **"You don't organize the chaos. PrioSync does."**
->
-> PrioSync is an adaptive planning engine that continuously recalculates what
-> should happen next as real-world execution deviates from the original plan.
+# PrioSync
 
-PrioSync is an intelligent task planning and prioritization platform. Dump a messy
-goal — *"placement prep, SQL + DSA left, assessment next week"* — and PrioSync
-understands it, structures it into goals/projects/tasks, detects dependencies,
-scores priorities **deterministically**, schedules the work, and adapts when life
-happens. AI understands the chaos; algorithms decide; PostgreSQL remembers.
+### Turn chaos into your next move
 
-## Where the project stands
+**"You don't organize the chaos. PrioSync does."**
 
-PrioSync is mid-migration from **MERN to PERN**, deliberately and incrementally:
+An adaptive planning engine that continuously recalculates what should happen
+next as real-world execution deviates from the original plan.
 
-| Layer | Legacy (v1, stable) | Current (v2, active development) |
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=for-the-badge&logo=github)](.github/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![Node](https://img.shields.io/badge/Node-%E2%89%A520-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Tests](https://img.shields.io/badge/Tests-192%20passing-success?style=for-the-badge)](#tests)
+
+<p>
+  <a href="#quickstart">Quickstart</a> •
+  <a href="#features">Features</a> •
+  <a href="#how-to-use">How to Use</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#the-dsa-engine">DSA Engine</a> •
+  <a href="#api-reference">API</a> •
+  <a href="#deployment">Deployment</a>
+</p>
+
+</div>
+
+---
+
+## What is PrioSync?
+
+PrioSync is an intelligent task planning and prioritization platform. Dump a
+messy goal — *"placement prep, SQL + DSA left, assessment next week"* — and
+PrioSync understands it, structures it into goals/projects/tasks, detects
+dependencies, scores priorities **deterministically**, schedules the work, and
+adapts when life happens.
+
+The core principle: **AI understands the chaos; algorithms decide; PostgreSQL
+remembers.** The LLM never sets priority, writes to the DB directly, or
+schedules. It extracts; the engine decides.
+
+### The problem it solves
+
+Modern workers face an unprecedented volume of tasks. Studies show the
+average knowledge worker juggles 50+ tasks and spends ~30% of their time just
+deciding what to work on next. Traditional to-do lists fail because:
+
+| Limitation | Problem | PrioSync's Solution |
 |---|---|---|
-| Database | MongoDB + Mongoose (`users`, `tasks`) | **PostgreSQL** — 11 tables, UUIDs, FKs, CHECKs, partial indexes |
-| API | `POST/GET /api/auth/*`, `/api/tasks/*` | Additive `/api/v2/*`: auth, tasks, planner, plans, replans, recommendations |
-| Engine | Priority score + MaxHeap + DAG + greedy scheduler | Same engine, extended: explainable breakdowns, unlock-impact, version concurrency |
-| Cache/Jobs | — | Redis cache-aside (`X-Cache`) + BullMQ recalc queue, both degrade gracefully |
-| Frontend | — | **Fully cut over to `/api/v2`**: Dashboard, Tasks, Dependencies, Profile, Planner, Focus — one session token, no Mongo dependency |
-| Observability | Morgan | Pino JSON logs, `/api/metrics` (Prometheus format) |
-| Tests | — | Vitest: 161 unit + 24 gated PG integration (`185/185`), plus 7 client lib tests (`npm test` in `client/`) |
+| Manual priority | User assigns priority (subjective) | Algorithm calculates objectively |
+| No time awareness | Deadline treated same as urgency | Deadline proximity weighted heavily |
+| Ignores dependencies | Tasks attempted before prerequisites | DAG enforces dependency order |
+| No complexity consideration | All tasks treated equally | Difficulty factor in scoring |
+| No analytics | "Feels productive" without data | Dashboard with 10+ metrics |
+| Static ranking | Priority set once, never updates | Real-time recalculation |
 
-v1 routes remain mounted for the migration contract (they 503 without MongoDB);
-the SPA no longer calls them. Redis/BullMQ are optional (the API runs fully
-without them), and MongoDB is optional too — without it only the legacy
-`/api/*` routes are unavailable. The Mongo→Postgres data migration script
-(`server/db/migrate-mongo-to-postgres.js`) exists but still needs a host that
-can reach Atlas before existing Mongo data can be moved.
+### Target users
 
-## Quickstart
+| User | Benefit |
+|---|---|
+| Students | Manage assignments, exams, projects with automatic prioritization |
+| Professionals | Organize daily work tasks, respect project dependencies |
+| Project managers | Understand task criticality, manage team dependencies |
+| Knowledge workers | Track productivity metrics, identify bottlenecks |
+| Entrepreneurs | Prioritize business tasks without analysis paralysis |
 
-### Option A — full stack with Docker (recommended, runs offline)
+---
 
-```bash
-docker compose up --build
-docker compose exec api node db/verify.js --apply   # create the 11 tables
-# web → http://localhost:8081   api → http://localhost:5000/api/health
-```
+## Features
 
-### Option B — local dev
+### Smart Task Prioritization
 
-```bash
-# server
-cd server
-cp .env.example .env   # fill POSTGRES_URI (Neon), JWT_SECRET; MONGO_URI for v1
-npm install
-node db/verify.js --apply
-npm run dev
+Every task gets a deterministic priority score (0–100) computed from four
+weighted factors. Scores update in real time whenever task parameters change.
+Blocked tasks get a −20 penalty so they never surface as "do next."
 
-# client (second terminal)
-cd client
-npm install
-npm run dev   # http://localhost:5173 (proxies /api to :5000 — set VITE_API_URL to override)
-```
+- Priority tiers: **Critical** (80–100), **High** (60–79), **Medium** (35–59), **Low** (0–34)
+- Every score ships an explanation object with signed factors ("Deadline pressure (+25) drives this score…")
 
-### Tests
+### Dependency Management (DAG)
 
-```bash
-cd server
-npm test        # unit only — no network, always safe
-npm run test:pg # + Postgres integration (RUN_PG_TESTS=1, temp users, cascade cleanup)
-cd ../client && npm run lint && npm run build
-```
+Tasks can depend on each other. A Directed Acyclic Graph (DAG) prevents
+circular dependencies, finds valid execution order via topological sort, and
+visualizes the full network as an interactive graph with critical-path and
+bottleneck overlays.
 
-## Product loop
+### Brain Dump → Structured Plan
+
+Type or paste a messy goal. The AI parser (or deterministic heuristic
+fallback) extracts goals, projects, tasks, estimates, and constraints into a
+Zod-validated structure. You review and confirm — the engine does the rest:
+cycle-check dependencies, compute scores, run the greedy scheduler, snapshot
+a plan version with computed health.
+
+### Planning Intelligence
+
+Beyond raw priority scores, PrioSync answers the decisions ordinary task
+managers punt on — all computed, all explainable, no LLM in the loop:
+
+- **Deadline risk** — LOW/MEDIUM/HIGH/CRITICAL with a 0–100 score where every point traces to a named factor
+- **Critical path + bottlenecks** — longest duration chain, ranked gates with downstream hours, blocked-work ledger
+- **Capacity** — planned vs usable hours with four priced relief options (never applied silently)
+- **What-if simulation** — move deadlines, drop tasks, or change capacity on cloned rows; reports current vs scenario risk
+- **Calibration** — actual ÷ estimated from timed focus sessions (min 3 samples, clamped 0.5–3x), feeding risk, capacity, and path durations
+- **Deviation detection** — overruns, missed deadlines, and near-term blocked work as evidence objects
+- **Auto-replan proposals** — top deviation becomes a trigger, recovery moves are priced (risk before/after), stored as a PROPOSED plan version; applying stays an explicit user action
+- **Reality drift** — repeated postponement, chronic per-category underestimation, fragmented sessions, each with evidence and one concrete adjustment
+- **Context-aware ordering** — Kahn's algorithm over dependencies balancing priority against switching cost
+- **Energy-matched day plans** — work thirds mapped to your rhythm, overflow listed not crammed
+- **Scope control** — original vs current, added/removed/deadline moves with growth math
+- **Commitments** — typed promises with an at-risk listing
+- **Best Next Move** — feasibility filter plus 8-factor deterministic impact over the dependency graph, with why-this / why-not tradeoffs
+- **Plan resilience** — 6 perturbations, recovery margin, delay tolerance, sensitivity ladder, named failure points
+- **Constraint resolution** — impossible-plan detection with priced escapes (advice only, never applied)
+- **Recovery plans** — interruption/deadline/dependency triggers priced into compared recoveries
+- **Goal traceability** — Goal → Project → Task → Subtask tree with orphan work, starved goals, low-impact completions
+- **Progress efficiency** — completed volume vs goal-critical contribution, stated factually
+- **Plan debt** — postponed work, repeated skips, compressed sessions, unresolved dependencies
+- **Uncertainty ranges** — p25/p75 estimate ranges from your own timed history
+- **Multi-project allocation** — daily capacity split by deadline demand, risk, and continuity (advice only)
+
+### Focus Mode
+
+A dedicated focus environment with a state machine timer (idle → running ↔
+paused → done), planned-length pills, session notes, fullscreen timer,
+Space/F keyboard shortcuts, visibility auto-pause, and Skip/Snooze next to
+Start. Sessions feed calibration and plan-debt tracking.
+
+### Real-Time Dashboard
+
+Top priority tasks, productivity metrics, completion charts, productivity
+trends, and an "Am I on track?" strip (risk, bottleneck, capacity, plan debt)
+— all updating live.
+
+### Advanced Analytics
+
+- Productivity score (60% completion + 20% task creation + 20% focus time)
+- Completion velocity (tasks completed per week)
+- Streak (consecutive days with completed tasks)
+- Focus sessions (total hours spent in deep work)
+- Category performance and priority distribution
+
+---
+
+## How to Use
+
+This section walks through using PrioSync end to end, from signup to advanced
+planning.
+
+### 1. Sign Up / Sign In
+
+Create an account with your email and password. Passwords are hashed with
+bcrypt (cost factor 12). After login you land on the Dashboard.
+
+- The auth page has a Sign In / Sign Up toggle
+- Password strength indicator shows during registration
+- Forgot password link for login mode
+
+### 2. Dashboard — "Am I on track?"
+
+The dashboard is your command center:
+
+- **Top tasks** — the 5 highest-priority pending tasks, fetched from the Max Heap
+- **Stat cards** — completion rate, overdue count, focus hours, productivity score
+- **Charts** — weekly activity (bar), completion rate (donut), productivity trend (line)
+- **Risk strip** — deadline risk level, primary bottleneck, capacity status, plan debt — each clicking through to details
+
+### 3. Tasks — Create and Manage
+
+- Click **Add Task** to create a task with title, importance (1–5), urgency
+  (1–5), difficulty (1–5), deadline, estimated minutes, energy fit, category,
+  and commitment type
+- The engine computes the priority score instantly on create
+- Edit, complete, or delete tasks — changes trigger rescore and cache bust
+- Each task card shows its priority tier badge and can expand to show the
+  signed factor breakdown behind its score
+- Blocked tasks show a "blocked" chip computed from dependency statuses
+
+### 4. Dependencies — Visualize Your Work
+
+- The dependency graph renders all tasks as nodes with directed edges
+- Critical-path nodes get a dashed ring; the primary bottleneck gets a red
+  ring + tag
+- Add dependencies between tasks (cycle-rejecting — circular deps are blocked)
+- The legend explains the overlays
+
+### 5. Planner — Brain Dump to Plan
+
+- Type or paste a messy goal in natural language
+- The AI parser (or heuristic fallback) extracts goals, projects, tasks,
+  estimates, and constraints into a structured, validated plan
+- Review the extracted plan, edit anything, then confirm
+- The engine creates everything transactionally: DAG cycle check →
+  deterministic scores → greedy schedule → computed health → plan version
+  snapshot
+- View auditable plan history (version, proposed/applied state, trigger,
+  reason, risk before/after, moves)
+- Use the read-only what-if panel to simulate scenarios (move deadlines, drop
+  tasks, change capacity) and see affected sets, bottleneck shifts, and
+  mitigations
+
+### 6. Focus — Deep Work Sessions
+
+- **What's Next?** recommends the single best task right now based on
+  feasibility (not blocked, within your time budget), energy match, and the
+  8-factor deterministic impact over the dependency graph — with why-this /
+  why-not tradeoffs on the winner and every alternate
+- **Start** a focus session on the recommended (or any) task
+- **Pause/Resume** — pause time is excluded from elapsed duration
+- **Skip** promotes the first alternate (recorded as prefer-first)
+- **Snooze** pushes the deadline 24h and re-ranks
+- **Day plan** section orders the selected window into energy periods
+  (morning/afternoon/evening from your rhythm)
+- **Deviations card** proposes recovery plans that the replan banner applies
+- Session notes, fullscreen timer, and Space/F keyboard shortcuts
+- Sessions feed calibration (actual ÷ estimated) and plan-debt tracking
+
+### 7. Profile — Follow-Through
+
+- **Planning rhythm editor** — set your daily capacity (minutes/day), work
+  start/end, and energy levels for morning/afternoon/evening
+- **AI narration consent** — toggle AI narration on or off (deterministic
+  text is always served regardless)
+- **Follow-through card** — recommendation adherence from accepted/overridden
+  history (hidden until data exists)
+
+### 8. Missed Work — Replan
+
+When life happens and work slips:
+
+- The system detects overdue/incomplete tasks
+- It proposes a day-packed recovery with per-day impact (read-only)
+- You accept or edit the proposal — accepting writes `TASK_RESCHEDULED` events
+  and a new plan snapshot
+- Nothing moves silently; the decision log records every accept/override
+
+---
+
+## Product Loop
 
 ```
 Brain dump → AI parse (structured, validated) → confirm → dependency graph
@@ -76,104 +248,618 @@ available-time, energy) → execute → miss? propose replan (you accept)
 → events logged → decision log + adherence → analytics
 ```
 
-The LLM **never** sets priority, writes to the DB directly, or schedules. It
-extracts; the engine decides. Without an `LLM_API_KEY`, a deterministic
-heuristic parser serves the same contract.
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│  Brain Dump  │────▶│  AI Parser    │────▶│  Confirm    │
+│  (messy text)│     │  (Zod-validated)│    │  (you edit) │
+└─────────────┘     └──────────────┘     └──────┬──────┘
+                                                 │
+┌─────────────┐     ┌──────────────┐            ▼
+│   Execute   │◀────│   Replan     │◀───┌───────────────┐
+│  (Focus)    │     │  (you accept)│    │  Engine Decides │
+└──────┬──────┘     └──────────────┘    │  Scores+Schedule│
+       │                                 └───────────────┘
+       ▼
+┌─────────────┐     ┌──────────────┐
+│   Events    │────▶│  Analytics    │
+│  (logged)   │     │  + Adherence  │
+└─────────────┘     └──────────────┘
+```
 
-## Planning intelligence (deterministic, explainable)
+---
 
-Beyond raw priority scores, `/api/v2/insights/*` answers the decisions ordinary
-task managers punt on - all computed, all explainable, no LLM in the loop:
+## Architecture
 
-- **Deadline risk** (`GET /risk`) - LOW/MEDIUM/HIGH/CRITICAL with a 0-100
-  score where every point traces to a named factor (load ratio, blocked work,
-  overdue items, downstream concentration, calibration state)
-- **Critical path + bottlenecks** (`GET /critical-path`, `/bottlenecks`) -
-  longest duration chain, ranked gates with downstream hours, blocked-work
-  ledger, delay-propagation primitive
-- **Capacity** (`GET /capacity`) - planned vs usable hours with four priced
-  relief options (move low-impact, extend deadline, raise capacity, cut scope)
-  returned as data, never applied silently
-- **What-if simulation** (`POST /simulate`) - move deadlines, drop tasks, or
-  change capacity on cloned rows; reports current vs scenario risk, affected
-  set, bottleneck shift, and a mitigation. Proven read-only by test.
-- **Explainable priority** - every score ships a
-  `{factors, positiveFactors, negativeFactors, info, summary}` object
-  ("Deadline pressure (+25) drives this score…")
-- **Calibration** - actual ÷ estimated from timed focus sessions (min
-  3 samples, clamped 0.5-3x), feeding risk, capacity, and path durations
-- **Deviation detection** (`GET /insights/deviations`) - overruns, missed
-  deadlines, and near-term blocked work as evidence objects with severity
-- **Auto-replan proposals** (`POST /insights/auto-replan`) - top deviation
-  becomes a trigger, recovery moves are priced (risk before/after) and stored
-  as a PROPOSED plan version; applying stays an explicit user action with its
-  own version. Nothing is ever silently overwritten.
-- **Reality drift** (`GET /insights/drift`) - repeated postponement, chronic
-  per-category underestimation, fragmented sessions - each with evidence and
-  one concrete adjustment, never psychological claims
-- **Context-aware ordering** (`GET /insights/context-order`) - Kahn's algorithm
-  over dependencies balancing priority against switching cost (lambda-tuned)
-- **Energy-matched day plans** (`GET /insights/day-plan`) - work thirds mapped
-  to your rhythm (`PUT /preferences`), overflow listed not crammed
-- **Scope control** (`GET /insights/scope`) - original vs current, added /
-  removed / deadline moves with growth math, per goal or workload
-- **Commitments** - typed promises (team/client/academic/deadline + optional
-  stakeholder) with an at-risk listing (`GET /insights/commitments`)
-- **Best Next Move** (`GET /tasks/next`) - feasibility filter plus 8-factor
-  deterministic impact over the dependency graph, with why-this / why-not
-  tradeoffs on the winner and every alternate; blocked or over-window tasks
-  are excluded, never recommended
-- **Plan resilience** (`GET /insights/resilience`) - 6 perturbations,
-  recovery margin, delay tolerance, sensitivity ladder, named failure points
-- **Constraint resolution** (`POST /insights/resolve`) - impossible-plan
-  detection with priced OPTION A-D escapes (advice only, never applied)
-- **Recovery plans** (`POST /insights/recovery`) - interruption/deadline/
-  dependency triggers priced into compared A-D recoveries, top 3 kept
-- **Goal traceability** (`GET /insights/traceability`) - Goal → Project →
-  Task → Subtask tree with orphan work, starved goals, low-impact completions,
-  and blocked goal-critical work
-- **Progress efficiency** (`GET /insights/efficiency`) - completed volume vs
-  goal-critical contribution, stated factually
-- **Plan debt** (`GET /insights/plan-debt`) - postponed work, repeated skips,
-  compressed sessions, unresolved dependencies, with a recovery estimate
-- **Uncertainty ranges** (inside `GET /insights/calibration`) - p25/p75
-  estimate ranges from your own timed history, with honest confidence levels
-- **Multi-project allocation** (`GET /insights/allocation`) - daily capacity
-  split by deadline demand, risk, and continuity (advice only)
+### System map
 
-## AI layer (optional, narrates - never decides)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    USER BROWSER (Client)                     │
+│  React 19 + Vite 7 + Tailwind 4                              │
+│  Dashboard / Tasks / Dependencies / Planner / Focus / Profile │
+│  AuthContext (global auth state) · useTasks hook              │
+│  Axios HTTP client with JWT interceptor                      │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ HTTP (JWT Bearer token)
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│              NODE.JS / EXPRESS SERVER (Backend)               │
+│  Express 4 · Zod 3 · Helmet 8 · JWT + bcryptjs                │
+│                                                               │
+│  routes/     ── thin: auth guard → Zod validate → controller  │
+│  controllers/── thin: shape HTTP in/out                       │
+│  services/  ── orchestration + transactions + events          │
+│  repositories/── raw SQL only                                 │
+│  dsa-engine/── pure deterministic algorithms, no I/O           │
+│  ai/ planner/── understanding (LLM/heuristic) + computed health │
+│  cache/ jobs/── Redis + BullMQ (optional, inline fallback)     │
+│  db/         ── pgClient (pooled) · schema.sql · verify · migrate │
+└──────────┬───────────────────────────────┬───────────────────┘
+           │                               │
+           ▼                               ▼
+┌─────────────────────┐         ┌─────────────────────┐
+│   PostgreSQL (v2)   │         │  MongoDB (v1, legacy)│
+│   11 tables · UUIDs  │         │  users · tasks       │
+│   FKs · CHECKs ·     │         │  (SPA no longer calls)│
+│   partial indexes     │         └─────────────────────┘
+└─────────────────────┘
+           │
+           ▼ (optional)
+┌─────────────────────┐
+│   Redis (optional)   │
+│   cache-aside +      │
+│   BullMQ recalc queue │
+└─────────────────────┘
+```
 
-Pollinations backs four endpoints under `/api/v2/ai` (`status`,
-`scenario-intent`, `focus-brief`, `session-reflection`, `smart-notes`).
-AI understands, algorithms decide: every narration is fact-locked against
-engine numbers (any mismatch falls back to a deterministic template), and
-every intent returns validated data the UI still asks you to confirm.
-Without a key (`POLLINATIONS_API_KEY` or `POLLEN_API`) everything degrades
-to the deterministic path - verified by test and by live failure drill.
+### Layering rules
 
-The Dashboard's "Am I on track?" strip (risk, bottleneck, capacity, plan debt) and the
-Focus recommendation's score sentence are the UI surface. The Dependencies
-graph highlights the critical path (dashed ring) and the primary bottleneck
-(red ring + tag); task cards expand to show the factor bars behind their
-score; the Planner keeps an auditable plan history and a read-only what-if
-panel; Focus adds Skip/Snooze next to Start; Profile shows follow-through.
-See `docs/ARCHITECTURE.md` for the risk model and algorithms.
+Controllers never touch SQL; repositories never touch the engine; the engine
+never touches I/O. Mutations write a `task_events` row in the same
+transaction.
+
+### Migration status
+
+PrioSync is mid-migration from MERN to PERN, deliberately and incrementally:
+
+| Layer | Legacy (v1, stable) | Current (v2, active development) |
+|---|---|---|
+| Database | MongoDB + Mongoose (`users`, `tasks`) | PostgreSQL — 11 tables, UUIDs, FKs, CHECKs, partial indexes |
+| API | `POST/GET /api/auth/*`, `/api/tasks/*` | Additive `/api/v2/*`: auth, tasks, planner, plans, replans, recommendations, insights |
+| Engine | Priority score + MaxHeap + DAG + greedy scheduler | Same engine, extended: explainable breakdowns, unlock-impact, version concurrency |
+| Cache/Jobs | — | Redis cache-aside (`X-Cache`) + BullMQ recalc queue, both degrade gracefully |
+| Frontend | — | Fully cut over to `/api/v2`: Dashboard, Tasks, Dependencies, Profile, Planner, Focus — one session token, no Mongo dependency |
+| Observability | Morgan | Pino JSON logs, `/api/metrics` (Prometheus format) |
+| Tests | — | Vitest: 161 unit + 24 gated PG integration (185/185), plus 7 client lib tests |
+
+v1 routes remain mounted for the migration contract (they 503 without
+MongoDB); the SPA no longer calls them. Redis/BullMQ are optional (the API runs
+fully without them), and MongoDB is optional too — without it only the legacy
+`/api/*` routes are unavailable.
+
+---
+
+## The DSA Engine
+
+The deterministic engine is the heart of PrioSync. Four data structures and
+algorithms work together to turn a chaotic task list into an executable plan.
+
+### Priority Scoring Algorithm
+
+```
+Priority Score (0–100) =
+  (Urgency × 0.30 + Importance × 0.25 + DeadlineBonus × 0.25 + EaseBonus × 0.20) × 20
+
+  - 20 if task has incomplete blocking dependencies
+```
+
+| Factor | Weight | Rationale |
+|---|---|---|
+| Urgency | 30% | Time-sensitive tasks must be prioritized |
+| Importance | 25% | Long-term value matters but less than urgency |
+| Deadline proximity | 25% | Objective time factor prevents information loss |
+| Ease (6 − difficulty) | 20% | Small tasks clear blockers and build momentum |
+
+**Deadline bonus scoring:**
+
+| Time to deadline | Bonus score |
+|---|---|
+| Overdue or < 6 hours | 5.0 (critical) |
+| < 24 hours | 4.5 (very high) |
+| < 72 hours | 4.0 (high) |
+| < 1 week | 3.0 (medium) |
+| < 2 weeks | 2.0 (low) |
+| < 1 month | 1.5 (very low) |
+| else | 1.0 (minimal) |
+
+**Worked example:**
+
+> Task: "Prepare presentation for client meeting"
+> Urgency=5, Importance=4, Deadline=24h away, Difficulty=4
+
+```
+Urgency:      5 × 0.30 = 1.50
+Importance:   4 × 0.25 = 1.00
+Deadline:     4.5 × 0.25 = 1.125
+Ease (6−4):   2 × 0.20 = 0.40
+Subtotal:     4.025
+Final score:  4.025 × 20 = 80.5  →  CRITICAL
+```
+
+### Max Heap — Priority Queue
+
+A binary Max Heap gives O(1) retrieval of the top-priority task and O(log n)
+insert/extract. When a user asks "What should I do now?", the heap root is the
+answer instantly.
+
+| Operation | Complexity |
+|---|---|
+| `peek()` | O(1) |
+| `insert()` | O(log n) |
+| `extractMax()` | O(log n) |
+| `heapify()` | O(n) |
+| `extractAll()` | O(n log n) |
+
+### DAG — Dependency Management
+
+A Directed Acyclic Graph prevents circular dependencies and finds valid
+execution order. When a user adds a dependency, DFS-based cycle detection
+runs from the target to see if it can reach the source — if so, the edge is
+rejected. Topological sort (Kahn's algorithm) produces a valid execution
+order in O(V+E).
+
+### Greedy Scheduler
+
+Combines priority scores with dependency constraints: build the DAG, run
+topological sort, compute scores with dependency penalties, heap the tasks,
+and extract in priority order while filtering to executable (non-blocked)
+tasks. The greedy choice property holds: choosing the top priority now leads
+to the optimal work order given constraints.
+
+| Structure | Use | Complexity |
+|---|---|---|
+| Weighted scorer | Multi-factor score, −20 if blocked | O(1) |
+| MaxHeap | Top-N retrieval | insert/extract O(log n) |
+| DAG | Deps, DFS cycle guard, Kahn topo sort, unlock-impact BFS | O(V+E) |
+| Greedy scheduler | Heap order over engine scores | O(V log V + E) |
+
+---
+
+## AI Layer (Optional, Narrates — Never Decides)
+
+The AI layer understands your messy input; it never makes decisions.
+
+```
+User → Brain dump → AI Parser → {goals, tasks, constraints} (Zod-validated)
+                                        ↓
+              Dependency engine → Priority engine → Scheduler → Plan + health
+```
+
+The model may not emit scores, ranks, schedules, SQL, or commands; user text
+is data (prompt-injection clause in the parser prompt). Failures are typed
+502s with a heuristic fallback path — never silent degradation.
+
+**Pollinations** backs four endpoints under `/api/v2/ai`:
+- `status` — AI configuration status
+- `scenario-intent` — NL → validated scenario mutations (never applied)
+- `focus-brief` — fact-locked 2–3 sentence brief
+- `session-reflection` — fact-locked reflection on one session
+- `smart-notes` — rough notes → summary + action items
+
+Every narration is fact-locked against engine numbers (any mismatch falls back
+to a deterministic template). Without a key, everything degrades to the
+deterministic path — verified by test and by live failure drill.
+
+---
+
+## Quickstart
+
+### Option A — Full Stack with Docker (recommended, runs offline)
+
+```bash
+docker compose up --build
+docker compose exec api node db/verify.js --apply   # create the 11 tables
+# web → http://localhost:8081
+# api → http://localhost:5000/api/health
+```
+
+Docker Compose spins up:
+- **Postgres 16** (local container, not Neon)
+- **Redis 7** (local container)
+- **API** (Node.js Express server)
+- **Web** (Vite-built React app served by nginx)
+
+### Option B — Local Dev
+
+**Server:**
+
+```bash
+cd server
+cp .env.example .env   # fill POSTGRES_URI (Neon), JWT_SECRET; MONGO_URI for v1
+npm install
+node db/verify.js --apply
+npm run dev            # starts on :5000
+```
+
+**Client (second terminal):**
+
+```bash
+cd client
+npm install
+npm run dev            # http://localhost:5173 (proxies /api to :5000)
+```
+
+> Set `VITE_API_URL` in `client/.env.local` to override the proxy target.
+
+### Tests
+
+<a id="tests"></a>
+
+```bash
+# Server
+cd server
+npm test          # unit only — no network, always safe (161 tests)
+npm run test:pg   # + Postgres integration (RUN_PG_TESTS=1, temp users, cascade cleanup)
+
+# Client
+cd client
+npm test          # 7 client lib tests (vitest, node env)
+npm run lint      # ESLint
+npm run build     # production build (~10s, 2453 modules)
+```
+
+**Test results:** 161 unit + 24 PG integration (185/185 server) + 7 client = **192 passing**.
+
+---
+
+## Environment Variables
+
+### Server (`server/.env`)
+
+| Variable | Required | Description |
+|---|---|---|
+| `PORT` | No | API port (default 5000) |
+| `POSTGRES_URI` | Yes (v2) | PostgreSQL connection string (Neon or local) |
+| `MONGO_URI` | No (v1) | MongoDB Atlas connection string (legacy routes) |
+| `JWT_SECRET` | Yes | Secret for signing JWT tokens |
+| `JWT_EXPIRES_IN` | No | Token expiry (default 7d) |
+| `NODE_ENV` | No | `production` / `development` |
+| `CLIENT_URL` | Yes | Allowed frontend origins (comma-separated) |
+| `REDIS_URL` | No | Redis connection (optional, degrades gracefully) |
+| `RATE_LIMIT_AUTH_MAX` | No | Auth rate limit per minute per IP (default 60) |
+| `LLM_API_KEY` | No | OpenAI-compatible key for brain-dump parsing |
+| `LLM_MODEL` | No | Model name (e.g. `gpt-4o-mini`) |
+| `LLM_BASE_URL` | No | OpenAI-compatible endpoint |
+| `POLLINATIONS_API_KEY` | No | Pollinations key for AI narration layer |
+| `POLLEN_API` | No | Shorthand for Pollinations key |
+| `POLLINATIONS_BASE_URL` | No | Pollinations endpoint |
+| `AI_MODEL` | No | Pollinations model (must be in allowlist) |
+| `LOG_LEVEL` | No | Pino log level (default info) |
+| `SLOW_REQUEST_MS` | No | Slow request threshold (default 1000) |
+| `RUN_PG_TESTS` | No | Set to 1 for PG integration tests |
+
+### Client (`client/.env.local`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_URL` | `/api` | API base URL |
+| `VITE_PROXY_TARGET` | `http://localhost:5000` | Dev proxy target |
+
+---
+
+## API Reference
+
+Base URL: `/api`. JSON only. Two auth systems coexist during migration:
+
+- **v1** (`/api/auth`, `/api/tasks`): MongoDB JWT — the SPA no longer calls these
+- **v2** (`/api/v2/*`): Postgres JWT — the SPA's only API surface
+
+### v2 Auth
+
+| Method | Path | Body |
+|---|---|---|
+| POST | `/api/v2/auth/register` | `{name, email, password}` → `{token, user}` |
+| POST | `/api/v2/auth/login` | `{email, password}` → `{token, user}` |
+| GET | `/api/v2/auth/me` | current user |
+| PUT | `/api/v2/auth/profile` | partial user fields |
+
+### v2 Tasks
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v2/tasks` | list with filters |
+| POST | `/api/v2/tasks` | create with auto-scored priority |
+| GET | `/api/v2/tasks/:id` | single task |
+| PUT | `/api/v2/tasks/:id` | update (with optimistic concurrency via `version`) |
+| DELETE | `/api/v2/tasks/:id` | cascade deps; history rows survive |
+| GET | `/api/v2/tasks/:id/explain` | score breakdown with signed factors |
+| PUT | `/api/v2/tasks/:id/dependencies` | full-replace deps (cycle-rejecting) |
+| GET | `/api/v2/tasks/top` | cached 60s, blocked excluded |
+| GET | `/api/v2/tasks/stats` | cached 120s, counts/tiers/overdue |
+| GET | `/api/v2/tasks/dag` | nodes/edges for graph view |
+| GET | `/api/v2/tasks/next` | What's Next recommendation + alternates |
+| POST | `/api/v2/tasks/recalc` | BullMQ job or inline recalc |
+| POST | `/api/v2/tasks/focus-session` | log a focus session |
+
+### v2 Planner
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/v2/planner/parse` | brain dump → structured plan (read-only) |
+| POST | `/api/v2/planner/confirm` | create everything transactionally |
+
+### v2 Insights (read-only unless noted)
+
+20+ endpoints under `/api/v2/insights/*` covering risk, critical-path,
+bottlenecks, capacity, simulation, deviations, drift, calibration,
+auto-replan, context-order, day-plan, scope, commitments, resilience,
+resolve, recovery, traceability, efficiency, plan-debt, allocation.
+
+### v2 AI
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v2/ai/status` | configuration status |
+| POST | `/api/v2/ai/scenario-intent` | NL → validated scenario mutations |
+| POST | `/api/v2/ai/focus-brief` | fact-locked brief |
+| POST | `/api/v2/ai/session-reflection` | fact-locked reflection |
+| POST | `/api/v2/ai/smart-notes` | rough notes → summary + action items |
+
+Full API reference: see [`docs/API.md`](docs/API.md).
+
+---
+
+## Database
+
+### PostgreSQL (v2, current)
+
+11 tables with UUID PKs, FKs with deliberate `ON DELETE`, CHECKs, and
+partial/composite indexes on hot paths.
+
+Key tables: `users`, `user_preferences`, `goals`, `projects`, `tasks`,
+`task_dependencies` (relational DAG edges), `task_events` (append-only audit
+trail), `work_sessions` (normalized focus sessions), `plan_versions` +
+`plan_items` (versioned schedules), `task_tags`.
+
+Hot indexes:
+
+```sql
+CREATE INDEX ix_tasks_user_priority ON tasks(user_id, priority_score DESC)
+  WHERE status IN ('pending','in-progress');   -- GET /top feed
+CREATE INDEX ix_tasks_user_status ON tasks(user_id, status);          -- lists
+CREATE INDEX ix_active_task_deadlines ON tasks(deadline)
+  WHERE status <> 'completed';                  -- overdue scan
+CREATE INDEX ix_events_user_time ON task_events(user_id, created_at DESC);
+```
+
+### MongoDB (v1, legacy)
+
+Two collections (`users`, `tasks`) via Mongoose. Kept running; new
+development targets Postgres. The SPA no longer calls v1 routes.
+
+Full database docs: see [`docs/DATABASE.md`](docs/DATABASE.md).
+
+---
+
+## Project Structure
+
+```
+PrioSync/
+├── client/                  # React 19 + Vite 7 frontend
+│   ├── src/
+│   │   ├── api/             # HTTP client
+│   │   ├── components/      # UI components (TaskCard, charts, graphs, icons)
+│   │   ├── context/        # AuthContext (global auth state)
+│   │   ├── hooks/          # useTasks hook
+│   │   ├── lib/            # focusSession + notificationPolicy (tested)
+│   │   ├── pages/          # Landing, Auth, Dashboard, Tasks, Dependencies,
+│   │   │                   #   Planner, Focus, Profile, NotFound
+│   │   ├── services/       # API services (auth, tasks, v2, ai, insights)
+│   │   ├── fonts/          # Chillax (brand wordmark only)
+│   │   └── index.css      # Tailwind 4 + design tokens
+│   ├── Dockerfile          # multi-stage build → nginx
+│   ├── nginx.conf          # SPA routing + API proxy
+│   └── vite.config.js      # dev proxy to :5000
+│
+├── server/                  # Node.js Express 4 backend
+│   ├── ai/                 # AI layer (provider, narrator, intents, parser)
+│   ├── cache/              # Redis cache-aside (optional)
+│   ├── config/             # DB config
+│   ├── controllers/        # thin HTTP shaping
+│   ├── db/                 # pgClient, schema.sql, verify, migrations
+│   ├── dsa-engine/         # pure algorithms: priority, heap, DAG, scheduler
+│   ├── jobs/               # BullMQ workers (optional)
+│   ├── middleware/         # auth, errorHandler, observability, rateLimit
+│   ├── models/             # Mongoose models (v1 legacy)
+│   ├── planner/            # 18 planning-intelligence engines
+│   ├── repositories/       # raw SQL only
+│   ├── routes/             # v1 + v2 route definitions
+│   ├── services/           # orchestration + transactions
+│   ├── tests/              # 24 test files (161 unit + PG integration)
+│   ├── validators/         # Zod schemas
+│   ├── utils/              # logger (Pino), metrics
+│   └── index.js            # entry point
+│
+├── docs/                    # Architecture, API, Database, Design System docs
+├── .github/workflows/       # CI (server unit tests + client lint/build)
+├── docker-compose.yml       # full local stack (Postgres + Redis + API + web)
+└── README.md                # this file
+```
+
+---
+
+## Design System
+
+PrioSync follows a calm, dark, focused aesthetic with high information
+density and minimal decoration.
+
+### Typography
+
+| Role | Font | Usage |
+|---|---|---|
+| UI / body | Inter 400–800 | Dashboards, tables, numbers, forms |
+| Headings | Plus Jakarta Sans 600–800 | Page titles, feature headings |
+| Technical data | IBM Plex Mono 400–600 | Scores, timers, IDs, durations |
+| Brand only | Chillax | The "PrioSync" wordmark. Nothing else. |
+
+### Color
+
+- **Brand:** Orange `#FC703C`, Cherry `#5D0703`
+- **Surfaces:** Cream `#F4F3E6`, Dark `#2B1B17`, Ink `#1F1F1F`
+- **Priority tiers:** Critical `#ef4444`, High `#f97316`, Medium `#eab308`, Low `#22c55e`
+- **Status:** Completed `#22c55e`, In-progress `#FC703C`, Pending `#EEA175`
+
+### Principles
+
+One screen answers one decision. No giant gradients, no glassmorphism piles,
+no neon, no sparkle confetti. Icons come only through `PrioIcon.jsx` (locally
+vendored Tabler/Simple Icons). Copy follows numbers over adjectives.
+
+Full design system: see [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+
+---
+
+## Tech Stack
+
+### Server
+
+- **Runtime:** Node.js ≥20, ESM
+- **Framework:** Express 4
+- **Database:** PostgreSQL via `pg` 8 (Neon in prod, container locally)
+- **Legacy DB:** MongoDB via Mongoose 8 (v1 routes only)
+- **Cache/Jobs:** Redis 7 via `ioredis` 5 + BullMQ 5 (both optional)
+- **Validation:** Zod 3
+- **Security:** Helmet 8, JWT, bcryptjs
+- **Logging:** Pino 9 + pino-http
+- **Dev:** Nodemon, Vitest, cross-env
+
+### Client
+
+- **Framework:** React 19
+- **Build:** Vite 7
+- **Styling:** Tailwind CSS 4
+- **Routing:** React Router 7
+- **HTTP:** Axios
+- **Charts:** Recharts 3
+- **Notifications:** react-hot-toast
+- **Icons:** Locally vendored Tabler icons behind `PrioIcon`
+- **Fonts:** Inter, Plus Jakarta Sans, IBM Plex Mono, Chillax (local)
+
+### Infrastructure
+
+- **Database:** PostgreSQL 16 (Neon in prod, container locally)
+- **Cache:** Redis 7 (optional)
+- **Containerization:** Docker + Docker Compose
+- **CI:** GitHub Actions (server unit tests, client lint + build)
+- **Web server:** nginx (production client serving + API proxy)
+
+---
+
+## Deployment
+
+### Docker (production-parity)
+
+```bash
+docker compose up --build
+docker compose exec api node db/verify.js --apply
+```
+
+Services: Postgres 16, Redis 7, API (Node), Web (nginx).
+
+### Manual deployment
+
+**Server** (Render, Railway, Fly.io, or any Node host):
+- Set environment variables from `server/.env.example`
+- `npm ci --omit=dev && npm start`
+- Run `node db/verify.js --apply` once to create tables
+- Run `node db/migrate.js` to apply migrations
+
+**Client** (Vercel, Netlify, or any static host):
+- Set `VITE_API_URL` to your API URL
+- `npm ci && npm run build`
+- Serve the `dist/` folder
+- The included `nginx.conf` handles SPA routing + API proxy for self-hosting
+
+### Database migration (Mongo → Postgres)
+
+```bash
+mongodump --uri="$MONGO_URI" --out=backup/           # 1. backup
+node server/db/verify.js --apply                      # 2. schema on target
+node server/db/migrate-mongo-to-postgres.js --dry-run # 3. counts only
+node server/db/migrate-mongo-to-postgres.js --apply   # 4. write
+# 5. parity check: script prints mongo vs pg counts — must match
+```
+
+The migration script is idempotent (`mongo_id` upserts), per-user
+transactional, orphan/self-edge tolerant. Password hashes carry over, so
+credentials keep working.
+
+---
+
+## Observability
+
+- **Pino JSON logs** with secret redaction
+- Per-route latency/error counters
+- PG latency (slow >200ms logged with SQL prefix)
+- Cache hit/miss, job outcomes, AI calls
+- All metrics at `GET /api/metrics` (Prometheus text format)
+
+### Observed performance (measured, not claimed)
+
+| Measurement | Value | Context |
+|---|---|---|
+| PG round-trip | ~250ms | Neon from dev sandbox |
+| Register latency | ~1.5s | bcrypt-12 dominates (honestly flagged `slow`) |
+| Unit suite | ~4s | 161 tests, no network |
+| PG integration | ~155s | 24 files / 185 tests, latency-bound |
+| Client lib tests | <1s | 7 tests |
+| `vite build` | ~10s | 2453 modules |
+| Docker images | api 292MB, web 97MB | `npm ci --omit=dev`, nginx static |
+
+---
+
+## Roadmap
+
+1. Migration cutover where Atlas is reachable (script + runbook exist)
+2. Time-aware scheduling (clock-time slots in `plan_items`)
+3. Redis sliding-window limits, reminder jobs, planner-AI background path
+4. Component tests once UI logic outgrows fetch wrappers
+5. Per-project/tag calibration splits
+6. `planning_risk_snapshots` table fed by the BullMQ recalc worker (if read load justifies it)
+
+---
+
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Make your changes following the design system and layering rules
+4. Run tests: `cd server && npm test` and `cd client && npm run lint && npm run build`
+5. Commit with a clear message
+6. Open a pull request
+
+**Layering rules:** Controllers never touch SQL; repositories never touch the
+engine; the engine never touches I/O. Mutations write a `task_events` row in
+the same transaction.
+
+**Design rules:** Follow `docs/DESIGN_SYSTEM.md`. Icons only through
+`PrioIcon.jsx`. Copy follows `docs/PRODUCT_WRITING_GUIDELINES.md` (numbers over
+adjectives).
+
+---
 
 ## Docs
 
-- `docs/ARCHITECTURE.md` — layers, flows, DSA engine, AI/deterministic split, tradeoffs, observed performance
-- `docs/DATABASE.md` — Mongo schema (legacy), Postgres schema + ER diagram, indexes, migration runbook
-- `docs/API.md` — v1 + v2 endpoint reference
-- `PROJECT_DOCUMENTATION.md` — original academic write-up (historical; code is source of truth)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — layers, flows, DSA engine, AI/deterministic split, tradeoffs, performance
+- [`docs/DATABASE.md`](docs/DATABASE.md) — Mongo schema (legacy), Postgres schema + ER diagram, indexes, migration runbook
+- [`docs/API.md`](docs/API.md) — full v1 + v2 endpoint reference
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — typography, color, shape, principles
+- [`docs/EXTERNAL_TOOLS.md`](docs/EXTERNAL_TOOLS.md) — external tool audit and decisions
+- [`docs/PRODUCT_WRITING_GUIDELINES.md`](docs/PRODUCT_WRITING_GUIDELINES.md) — copy guidelines
+- [`docs/OPEN_SOURCE_NOTICES.md`](docs/OPEN_SOURCE_NOTICES.md) — open source license notices
+- [`PROJECT_DOCUMENTATION.md`](PROJECT_DOCUMENTATION.md) — original academic write-up (historical; code is source of truth)
 
-## Stack
-
-**Server** (Node ≥20, ESM): Express 4, `pg` 8, Mongoose 8, BullMQ 5 + `ioredis` 5,
-Pino 9, Zod 3 (server), Helmet 8, JWT + bcryptjs.
-**Client:** React 19, Vite 7, Tailwind 4, React Router 7, Axios, Recharts,
-`react-hot-toast`, locally vendored Tabler icons behind `PrioIcon`.
-**Infra:** Postgres 16 (Neon in prod, container locally), Redis 7 (optional),
-Docker + Compose, GitHub Actions CI (unit tests, lint, build).
+---
 
 ## License
 

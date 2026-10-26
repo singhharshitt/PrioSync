@@ -638,7 +638,7 @@ const DashboardPage = () => {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-[#FC703C]/10 border border-[#FC703C]/20">
-                  <Activity size={20} className="text-[#FC703C]" />
+                  <PrioIcon name="activity" size={20} className="text-[#FC703C]" />
                 </div>
                 <div>
                   <span className="text-xs uppercase tracking-widest text-[#2B1B17]/40 font-black block">{`{ Analytics }`}</span>
