@@ -21,8 +21,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - run: npm ci
       - run: npm test
-      # PG integration (test:pg) is intentionally NOT in CI default:
-      # it needs RUN_PG_TESTS=1 against a throwaway database.
+      # No integration tests in CI — unit suite is DB-free and always safe.
 
   client:
     name: client lint + build

@@ -1,51 +1,20 @@
 import express from 'express';
-import { protectPg } from '../middleware/pgAuth.js';
+import { protectMongo } from '../middleware/mongoAuth.js';
 import {
-    validateQuery,
-    validateBody,
-    riskQuery,
-    criticalPathQuery,
-    bottlenecksQuery,
-    capacityQuery,
-    simulateSchema,
-    deviationsQuery,
-    driftQuery,
-    calibrationQuery,
-    autoReplanSchema,
-    contextOrderQuery,
-    dayPlanQuery,
-    goalScopeQuery,
-    resilienceQuery,
-    resolveSchema,
-    recoverySchema,
-    allocationQuery,
+    validateQuery, validateBody,
+    riskQuery, criticalPathQuery, bottlenecksQuery, capacityQuery, simulateSchema,
+    deviationsQuery, driftQuery, calibrationQuery, autoReplanSchema, contextOrderQuery,
+    dayPlanQuery, goalScopeQuery, resilienceQuery, resolveSchema, recoverySchema, allocationQuery,
 } from '../validators/insights.js';
 import {
-    getRisk,
-    getCriticalPath,
-    getBottlenecks,
-    getCapacity,
-    simulate,
-    getDeviations,
-    getDrift,
-    getCalibration,
-    autoReplan,
-    getContextOrder,
-    getDayPlan,
-    getScope,
-    getCommitments,
-    getResilience,
-    resolveConstraints,
-    getRecovery,
-    getTraceability,
-    getEfficiency,
-    getPlanDebt,
-    getAllocation,
-} from '../controllers/pgInsightController.js';
+    getRisk, getCriticalPath, getBottlenecks, getCapacity, simulate,
+    getDeviations, getDrift, getCalibration, autoReplan, getContextOrder,
+    getDayPlan, getScope, getCommitments, getResilience, resolveConstraints,
+    getRecovery, getTraceability, getEfficiency, getPlanDebt, getAllocation,
+} from '../controllers/mongoInsightController.js';
 
 const router = express.Router();
-
-router.use(protectPg);
+router.use(protectMongo);
 
 router.get('/risk', validateQuery(riskQuery), getRisk);
 router.get('/critical-path', validateQuery(criticalPathQuery), getCriticalPath);
@@ -63,8 +32,6 @@ router.get('/commitments', getCommitments);
 router.get('/resilience', validateQuery(resilienceQuery), getResilience);
 router.post('/resolve', validateBody(resolveSchema), resolveConstraints);
 router.post('/recovery', validateBody(recoverySchema), getRecovery);
-
-// Tier A (spec 35-39): traceability, efficiency, plan debt, allocation.
 router.get('/traceability', getTraceability);
 router.get('/efficiency', validateQuery(goalScopeQuery), getEfficiency);
 router.get('/plan-debt', getPlanDebt);

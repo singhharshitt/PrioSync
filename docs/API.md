@@ -19,27 +19,23 @@ responses include `stack` when `NODE_ENV=development`.
 | `409` | Stale `version` (task) or duplicate email (register) |
 | `429` | Auth rate limit (60/min/IP, `RATE_LIMIT_AUTH_MAX`) |
 | `502` | LLM parse failed (`LLM_TIMEOUT` / `LLM_INVALID` / `LLM_UNAVAILABLE`) — heuristic fallback offered |
-| `503` | Dependency temporarily down — v1 routes without Mongo; v2 routes while Postgres is waking/unreachable ("warming up, retry shortly"); always safe to retry |
+| `503` | Dependency temporarily down — MongoDB unavailable; always safe to retry |
 
-Two auth systems coexist during migration:
+Both auth systems share one MongoDB backend. The SPA uses only v2 routes.
 
-- **v1** (`/api/auth`, `/api/tasks`): MongoDB JWT, header `Authorization: Bearer <v1 token>`.
-  Gated by `requireDatabaseConnection` (Mongo must be up → otherwise `503`).
+- **v1** (`/api/auth`, `/api/tasks`): MongoDB JWT, header `Authorization: Bearer <token>`.
+  Gated by `requireDatabase` (Mongo must be up → otherwise `503`).
   The SPA no longer calls these routes.
-- **v2** (`/api/v2/*`): JWT with UUID `sub`-style `{ id }` claim, header
-  `Authorization: Bearer <v2 token>`. This is the SPA's only API surface —
+- **v2** (`/api/v2/*`): Same JWT contract, same MongoDB backend.
   `authService`/`taskService`/`v2.js` share ONE token (`priosync_token`).
-  On boot the client migrates storage: adopts a legacy dual-session v2 token
-  if present, drops stale v1 tokens (their Mongo ids cannot resolve in
-  Postgres), and clears the old `priosync_v2_token` key.
-  Gated by `requirePostgres`.
+  Gated by `requireDatabase`.
 
 ## Meta
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | `/api/health` | — | `{success, message, databaseConnected (Mongo), postgresConnected, redisConnected, timestamp}` — `success` is true when **either** database is connected |
-| GET | `/api/metrics` | — | Prometheus text: `http_*`, `pg_latency_ms`, `cache_*`, `jobs_*`, `ai_*` |
+| GET | `/api/health` | — | `{success, message, databaseConnected (Mongo), redisConnected, timestamp}` |
+| GET | `/api/metrics` | — | Prometheus text: `http_*`, `db_latency_ms`, `cache_*`, `jobs_*`, `ai_*` |
 
 ## v1 — Mongo (legacy, stable)
 
@@ -59,9 +55,9 @@ Two auth systems coexist during migration:
 | GET | `/api/tasks/dag` | nodes + edges for the graph view |
 | POST | `/api/tasks/focus-session` | `{taskId, startedAt, endedAt, durationSeconds}` |
 
-## v2 — Postgres (current)
+## v2 — MongoDB (current)
 
-All v2 task/planner routes require a v2 token. Task writes accept optional
+All v2 task/planner routes require a token. Task writes accept optional
 `version` for optimistic concurrency (mismatch → `409` with current record).
 
 ### Auth

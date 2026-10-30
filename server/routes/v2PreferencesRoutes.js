@@ -1,12 +1,10 @@
 import express from 'express';
-import { protectPg } from '../middleware/pgAuth.js';
+import { protectMongo } from '../middleware/mongoAuth.js';
 import { validateBody, preferencesSchema } from '../validators/preferences.js';
-import { getPreferences, updatePreferences } from '../controllers/pgPreferencesController.js';
+import { getPreferences, updatePreferences } from '../controllers/mongoPreferencesController.js';
 
 const router = express.Router();
-
-router.use(protectPg);
-
+router.use(protectMongo);
 router.get('/', getPreferences);
 router.put('/', validateBody(preferencesSchema), updatePreferences);
 

@@ -3,8 +3,50 @@ import bcrypt from 'bcryptjs';
 
 /**
  * User Model
- * Stores authentication credentials and profile data
+ * Stores authentication credentials, profile data, and planner preferences.
+ *
+ * `focusSessions[]` is the v1 embedded log (kept for the v1 routes); the v2
+ * Focus flow writes normalized `WorkSession` docs instead. `preferences`
+ * holds planner constraints (capacity, work window, daily energy rhythm).
  */
+const preferencesSchema = new mongoose.Schema(
+    {
+        availableMinutesPerDay: {
+            type: Number,
+            min: 15,
+            max: 960,
+            default: 240,
+        },
+        workStart: { type: String, default: null }, // "HH:MM"
+        workEnd: { type: String, default: null },
+        defaultEnergy: {
+            type: String,
+            enum: ['low', 'normal', 'high'],
+            default: 'normal',
+        },
+        energyMorning: {
+            type: String,
+            enum: ['low', 'normal', 'high'],
+            default: 'high',
+        },
+        energyAfternoon: {
+            type: String,
+            enum: ['low', 'normal', 'high'],
+            default: 'normal',
+        },
+        energyEvening: {
+            type: String,
+            enum: ['low', 'normal', 'high'],
+            default: 'low',
+        },
+        aiNarration: {
+            type: Boolean,
+            default: true,
+        },
+    },
+    { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
     {
         name: {
@@ -42,6 +84,11 @@ const userSchema = new mongoose.Schema(
         tasksCreated: {
             type: Number,
             default: 0,
+        },
+        // Planner constraints + energy rhythm (created alongside the user).
+        preferences: {
+            type: preferencesSchema,
+            default: () => ({}),
         },
         focusSessions: [
             {

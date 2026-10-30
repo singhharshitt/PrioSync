@@ -41,4 +41,4 @@ npx -y better-icons@1.0.4 get tabler:bottleneck   # stdout SVG
   pre-approved collection recorded in `docs/OPEN_SOURCE_NOTICES.md`, vendored
   into `iconAssets.jsx`, and registered in `PrioIcon.jsx`.
 - No user data (tasks, goals, sessions, credentials) is sent to any external tool by PrioSync code.
-- The deterministic engine boundary (AI parses -> Zod validates -> engine decides -> Postgres persists) is untouched by all of the above.
+- The deterministic engine boundary (AI parses -> Zod validates -> engine decides -> MongoDB persists) is untouched by all of the above.

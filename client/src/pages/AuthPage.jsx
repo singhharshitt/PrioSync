@@ -88,9 +88,13 @@ const AuthPage = () => {
       }
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 
-        (isLogin ? 'Login failed. Please check your credentials.' : 'Registration failed. Please try again.')
-      );
+      const serverMsg = err.response?.data?.message || '';
+      // 503 = server/database waking up — give a friendlier message
+      if (err.response?.status === 503 || serverMsg.toLowerCase().includes('unavailable') || serverMsg.toLowerCase().includes('warming')) {
+        setError('The server is waking up — please wait a moment and try again.');
+      } else {
+        setError(serverMsg || (isLogin ? 'Login failed. Please check your credentials.' : 'Registration failed. Please try again.'));
+      }
     } finally {
       setLoading(false);
     }

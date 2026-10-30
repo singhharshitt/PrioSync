@@ -1,30 +1,32 @@
+/**
+ * Mongo v2 auth controller — mirrors pgAuthController.js contract.
+ * Bcrypt hashing done here (cost 12); repository stores the hash.
+ */
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { getPool } from '../db/pgClient.js';
-import * as Users from '../repositories/pgUsers.js';
+import * as Users from '../repositories/mongoUsers.js';
+import Task from '../models/Task.js';
 
 const sign = (userId) =>
     jwt.sign({ id: userId }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     });
 
-/** v1-compatible user payload (+ PG-native id alongside _id). */
 const present = async (user) => {
-    const pool = getPool();
-    const r = await pool.query(
-        `SELECT COUNT(*)::int total, COUNT(*) FILTER (WHERE status='completed')::int done
-         FROM tasks WHERE user_id = $1`,
-        [user.id]
-    );
+    const id = (user._id || user.id).toString();
+    const [total, done] = await Promise.all([
+        Task.countDocuments({ owner: id }),
+        Task.countDocuments({ owner: id, status: 'completed' }),
+    ]);
     return {
-        _id: user.id,
-        id: user.id,
+        _id: id,
+        id,
         name: user.name,
         email: user.email,
-        productivityScore: user.productivity_score,
-        tasksCompleted: r.rows[0].done,
-        tasksCreated: r.rows[0].total,
-        createdAt: user.created_at,
+        productivityScore: user.productivityScore ?? 0,
+        tasksCompleted: done,
+        tasksCreated: total,
+        createdAt: user.createdAt,
     };
 };
 
@@ -32,15 +34,9 @@ export const register = async (req, res, next) => {
     try {
         const { name, email, password } = req.body;
         const existing = await Users.findByEmail(email);
-        if (existing) {
-            return res.status(409).json({ success: false, message: 'Email already registered.' });
-        }
-        const user = await Users.create({
-            email,
-            passwordHash: await bcrypt.hash(password, 12),
-            name,
-        });
-        res.status(201).json({ success: true, token: sign(user.id), user: await present(user) });
+        if (existing) return res.status(409).json({ success: false, message: 'Email already registered.' });
+        const user = await Users.create({ email, passwordHash: await bcrypt.hash(password, 12), name });
+        res.status(201).json({ success: true, token: sign(user._id || user.id), user: await present(user) });
     } catch (error) {
         next(error);
     }
@@ -50,12 +46,12 @@ export const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
         const user = await Users.findByEmailWithHash(email);
-        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+        if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ success: false, message: 'Invalid email or password.' });
         }
-        const { password_hash: _ph, ...safe } = user;
-        void _ph;
-        res.json({ success: true, token: sign(user.id), user: await present(safe) });
+        const { password: _pw, ...safe } = user;
+        void _pw;
+        res.json({ success: true, token: sign(user._id.toString()), user: await present(safe) });
     } catch (error) {
         next(error);
     }
@@ -75,7 +71,8 @@ export const updateProfile = async (req, res, next) => {
         if (!name || String(name).trim().length === 0) {
             return res.status(400).json({ success: false, message: 'Name is required.' });
         }
-        const user = await Users.updateName(req.user.id, String(name).trim().slice(0, 80));
+        const id = (req.user._id || req.user.id).toString();
+        const user = await Users.updateName(id, String(name).trim().slice(0, 80));
         res.json({ success: true, user: await present(user) });
     } catch (error) {
         next(error);

@@ -59,10 +59,10 @@ export const renderMetrics = (cacheMeta) => {
         const [method, ...rest] = route.split(' ');
         lines.push(`priosync_http_slow{method="${esc(method)}",route="${esc(rest.join(' '))}"} ${s.slow}`);
     }
-    lines.push('# HELP priosync_db_queries Total Postgres queries.');
+    lines.push('# HELP priosync_db_queries Total MongoDB queries.');
     lines.push('# TYPE priosync_db_queries counter');
     lines.push(`priosync_db_queries ${dbStats.count}`);
-    lines.push('# HELP priosync_db_latency_ms_sum Postgres latency sum.');
+    lines.push('# HELP priosync_db_latency_ms_sum MongoDB latency sum.');
     lines.push('# TYPE priosync_db_latency_ms_sum counter');
     lines.push(`priosync_db_latency_ms_sum ${Math.round(dbStats.sumMs)}`);
     lines.push('# HELP priosync_db_slow Queries slower than 200ms.');

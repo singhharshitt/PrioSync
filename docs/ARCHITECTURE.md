@@ -8,19 +8,17 @@ flowchart TB
     API["Express API\nv1 Mongo routes + v2 PG routes\nZod validation · JWT · rate-limit · Helmet"]
     DSA["DSA engine\npriorityEngine · MaxHeap · DAG\nscheduler — decides scores & order"]
     AI["AI parser (isolated)\nLLM or heuristic → Zod JSON\nsuggests only, never writes"]
-    PG[("PostgreSQL\n11 tables · events · plans")]
-    Mongo[("MongoDB (legacy)\nusers · tasks")]
+    Mongo[("MongoDB\nusers · tasks · goals · projects\ntaskEvents · workSessions · planVersions")]
     Redis[("Redis (optional)\ntop/stats cache · BullMQ")]
     Worker["BullMQ worker\nrecalc scores async"]
 
     Browser -->|"/api/* + /api/v2/*"| API
     API --> DSA
     API -->|validated JSON only| AI
-    API --> PG
     API --> Mongo
     API <--> Redis
     Redis --> Worker
-    Worker --> PG
+    Worker --> Mongo
 ```
 
 ## Layering (server)
@@ -28,16 +26,16 @@ flowchart TB
 ```
 routes/        ── thin: auth guard → Zod validate → controller
 controllers/   ── thin: shape HTTP in/out, map service results to status codes
-services/      ── orchestration + transactions + events (pgTaskService, plannerService, replanService)
-repositories/  ── raw SQL only (pgUsers, pgTasks, pgSessions)
+services/      ── orchestration + events (mongoTaskService, mongoPlannerService, mongoReplanService)
+repositories/  ── Mongoose queries only (mongoUsers, mongoTasks, mongoSessions, mongoEvents)
 dsa-engine/    ── pure deterministic algorithms, no I/O
 ai/ planner/   ── understanding (LLM/heuristic) + computed health
 cache/ jobs/   ── Redis + BullMQ, both optional with inline fallback
-db/            ── pgClient (pooled, instrumented), schema.sql, verify, migration
+models/        ── Mongoose schemas (User, Task, Goal, Project, TaskEvent, WorkSession, PlanVersion)
 ```
 
-Controllers never touch SQL; repositories never touch the engine; the engine
-never touches I/O. Mutations write a `task_events` row in the same transaction.
+Controllers never touch queries; repositories never touch the engine; the engine
+never touches I/O. Mutations record a `TaskEvent` document alongside every write.
 
 ## Request flows
 
@@ -240,7 +238,7 @@ data (prompt-injection clause in `ai/plannerPrompt.js`). Failures are typed
 ## Cache & jobs
 
 - Cache-aside on `GET top` (60s) / `stats` (120s), `X-Cache: HIT/MISS`,
-  synchronous bust on every writer. Miss/down → Postgres directly.
+  synchronous bust on every writer. Miss/down → MongoDB directly.
 - `POST /tasks/recalc` enqueues score recalculation (deadline pressure drifts);
   without Redis the same handler runs inline — response states which.
 - Rate limiting is in-memory fixed-window on auth (per-process; Redis sliding
@@ -257,10 +255,8 @@ in prod).
 
 | Measurement | Value | Context |
 |---|---|---|
-| PG round-trip | ~250ms | Neon from dev sandbox (`priosync_db_latency_ms_sum`) |
-| Register latency | ~1.5s | bcrypt-12 dominates (honestly flagged `slow`) |
+| MongoDB round-trip | ~50ms | Atlas M0 free tier || Register latency | ~1.5s | bcrypt-12 dominates (honestly flagged `slow`) |
 | Unit suite | ~4s | 161 tests, no network |
-| PG integration | ~155s | 24 files / 185 tests, latency-bound |
 | Client lib tests | <1s | 7 tests (`vitest run --environment node`) |
 | `vite build` | ~10s | 2453 modules |
 | Images | api 292MB, web 97MB | `npm ci --omit=dev`, nginx static |
@@ -272,8 +268,8 @@ before optimizing.
 
 | Decision | Why | Cost |
 |---|---|---|
-| Raw `pg` over Prisma | CTE/window control, no codegen churn mid-migration | Hand-written SQL, no generated types |
-| v1+v2 coexist, no flag | Zero regression, explicit contract (§46) | Legacy routes idle (SPA is v2-only, single session) until decommission |
+| Raw Mongoose over Prisma | Familiar ODM, flexible schema | No generated types |
+| v1+v2 same DB | Single Atlas connection, no dual-DB overhead | Legacy routes still mounted until decommission |
 | Heuristic parser default | Works with no key/cost/latency | Dumber than LLM; LLM upgrades without contract change |
 | In-memory rate limit | Zero infra, stops casual abuse | Per-process; needs Redis when scaled out |
 | No `productivity_metrics` table | CTEs suffice until proven slow | Recompute per read (cached 120s) |
@@ -281,9 +277,7 @@ before optimizing.
 
 ## Roadmap
 
-1. Migration cutover where Atlas is reachable (script + runbook exist)
-2. ~~Unified auth~~ — done: SPA uses one v2 session (`V2SessionGate` retired);
-   next is decommissioning legacy routes once migration parity is signed off
-3. Time-aware scheduling (clock-time slots in `plan_items`)
-4. Redis sliding-window limits, reminder jobs, planner-AI background path
-5. Component tests once UI logic outgrows fetch wrappers
+1. Time-aware scheduling (clock-time slots in plan items)
+2. ~~Unified auth~~ — done: SPA uses one session; next is decommissioning legacy v1 routes
+3. Redis sliding-window limits, reminder jobs, planner-AI background path
+4. Component tests once UI logic outgrows fetch wrappers

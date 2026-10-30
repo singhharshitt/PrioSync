@@ -7,8 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "vitest run",
-    "test:pg": "cross-env RUN_PG_TESTS=1 vitest run"
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -23,13 +22,11 @@
     "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.1",
-    "pg": "^8.23.0",
     "pino": "^9.14.0",
     "pino-http": "^10.5.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
     "nodemon": "^3.1.14",
     "vitest": "^3.2.7"
   }

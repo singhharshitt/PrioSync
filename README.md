@@ -13,8 +13,8 @@ next as real-world execution deviates from the original plan.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-%E2%89%A520-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![Tests](https://img.shields.io/badge/Tests-192%20passing-success?style=for-the-badge)](#tests)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Tests](https://img.shields.io/badge/Tests-168%20passing-success?style=for-the-badge)](#tests)
 
 <p>
   <a href="#quickstart">Quickstart</a> •
@@ -38,7 +38,7 @@ PrioSync understands it, structures it into goals/projects/tasks, detects
 dependencies, scores priorities **deterministically**, schedules the work, and
 adapts when life happens.
 
-The core principle: **AI understands the chaos; algorithms decide; PostgreSQL
+The core principle: **AI understands the chaos; algorithms decide; MongoDB
 remembers.** The LLM never sets priority, writes to the DB directly, or
 schedules. It extracts; the engine decides.
 
@@ -288,20 +288,24 @@ available-time, energy) → execute → miss? propose replan (you accept)
 │                                                               │
 │  routes/     ── thin: auth guard → Zod validate → controller  │
 │  controllers/── thin: shape HTTP in/out                       │
-│  services/  ── orchestration + transactions + events          │
-│  repositories/── raw SQL only                                 │
+│  services/  ── orchestration + events                         │
+│  repositories/── Mongoose queries only                        │
 │  dsa-engine/── pure deterministic algorithms, no I/O           │
 │  ai/ planner/── understanding (LLM/heuristic) + computed health │
 │  cache/ jobs/── Redis + BullMQ (optional, inline fallback)     │
-│  db/         ── pgClient (pooled) · schema.sql · verify · migrate │
-└──────────┬───────────────────────────────┬───────────────────┘
-           │                               │
-           ▼                               ▼
-┌─────────────────────┐         ┌─────────────────────┐
-│   PostgreSQL (v2)   │         │  MongoDB (v1, legacy)│
-│   11 tables · UUIDs  │         │  users · tasks       │
-│   FKs · CHECKs ·     │         │  (SPA no longer calls)│
-│   partial indexes     │         └─────────────────────┘
+│  models/     ── Mongoose schemas (User, Task, Goal, Project,   │
+│               ·  TaskEvent, WorkSession, PlanVersion)          │
+└──────────┬──────────────────────────────────────────────────┘
+           │
+           ▼
+┌─────────────────────┐
+│   MongoDB (Atlas     │
+│   or local)          │
+│   users · tasks      │
+│   goals · projects   │
+│   taskEvents         │
+│   workSessions       │
+│   planVersions       │
 └─────────────────────┘
            │
            ▼ (optional)
@@ -314,28 +318,8 @@ available-time, energy) → execute → miss? propose replan (you accept)
 
 ### Layering rules
 
-Controllers never touch SQL; repositories never touch the engine; the engine
-never touches I/O. Mutations write a `task_events` row in the same
-transaction.
-
-### Migration status
-
-PrioSync is mid-migration from MERN to PERN, deliberately and incrementally:
-
-| Layer | Legacy (v1, stable) | Current (v2, active development) |
-|---|---|---|
-| Database | MongoDB + Mongoose (`users`, `tasks`) | PostgreSQL — 11 tables, UUIDs, FKs, CHECKs, partial indexes |
-| API | `POST/GET /api/auth/*`, `/api/tasks/*` | Additive `/api/v2/*`: auth, tasks, planner, plans, replans, recommendations, insights |
-| Engine | Priority score + MaxHeap + DAG + greedy scheduler | Same engine, extended: explainable breakdowns, unlock-impact, version concurrency |
-| Cache/Jobs | — | Redis cache-aside (`X-Cache`) + BullMQ recalc queue, both degrade gracefully |
-| Frontend | — | Fully cut over to `/api/v2`: Dashboard, Tasks, Dependencies, Profile, Planner, Focus — one session token, no Mongo dependency |
-| Observability | Morgan | Pino JSON logs, `/api/metrics` (Prometheus format) |
-| Tests | — | Vitest: 161 unit + 24 gated PG integration (185/185), plus 7 client lib tests |
-
-v1 routes remain mounted for the migration contract (they 503 without
-MongoDB); the SPA no longer calls them. Redis/BullMQ are optional (the API runs
-fully without them), and MongoDB is optional too — without it only the legacy
-`/api/*` routes are unavailable.
+Controllers never touch queries; repositories never touch the engine; the engine
+never touches I/O. Mutations record a `TaskEvent` document alongside every write.
 
 ---
 
@@ -458,13 +442,12 @@ deterministic path — verified by test and by live failure drill.
 
 ```bash
 docker compose up --build
-docker compose exec api node db/verify.js --apply   # create the 11 tables
 # web → http://localhost:8081
 # api → http://localhost:5000/api/health
 ```
 
 Docker Compose spins up:
-- **Postgres 16** (local container, not Neon)
+- **MongoDB 7** (local container, not Atlas)
 - **Redis 7** (local container)
 - **API** (Node.js Express server)
 - **Web** (Vite-built React app served by nginx)
@@ -475,9 +458,8 @@ Docker Compose spins up:
 
 ```bash
 cd server
-cp .env.example .env   # fill POSTGRES_URI (Neon), JWT_SECRET; MONGO_URI for v1
+cp .env.example .env   # fill MONGO_URI (Atlas or local), JWT_SECRET
 npm install
-node db/verify.js --apply
 npm run dev            # starts on :5000
 ```
 
@@ -499,7 +481,6 @@ npm run dev            # http://localhost:5173 (proxies /api to :5000)
 # Server
 cd server
 npm test          # unit only — no network, always safe (161 tests)
-npm run test:pg   # + Postgres integration (RUN_PG_TESTS=1, temp users, cascade cleanup)
 
 # Client
 cd client
@@ -508,7 +489,7 @@ npm run lint      # ESLint
 npm run build     # production build (~10s, 2453 modules)
 ```
 
-**Test results:** 161 unit + 24 PG integration (185/185 server) + 7 client = **192 passing**.
+**Test results:** 161 unit + 7 client = **168 passing**.
 
 ---
 
@@ -519,8 +500,7 @@ npm run build     # production build (~10s, 2453 modules)
 | Variable | Required | Description |
 |---|---|---|
 | `PORT` | No | API port (default 5000) |
-| `POSTGRES_URI` | Yes (v2) | PostgreSQL connection string (Neon or local) |
-| `MONGO_URI` | No (v1) | MongoDB Atlas connection string (legacy routes) |
+| `MONGO_URI` | Yes | MongoDB Atlas connection string |
 | `JWT_SECRET` | Yes | Secret for signing JWT tokens |
 | `JWT_EXPIRES_IN` | No | Token expiry (default 7d) |
 | `NODE_ENV` | No | `production` / `development` |
@@ -536,7 +516,6 @@ npm run build     # production build (~10s, 2453 modules)
 | `AI_MODEL` | No | Pollinations model (must be in allowlist) |
 | `LOG_LEVEL` | No | Pino log level (default info) |
 | `SLOW_REQUEST_MS` | No | Slow request threshold (default 1000) |
-| `RUN_PG_TESTS` | No | Set to 1 for PG integration tests |
 
 ### Client (`client/.env.local`)
 
@@ -552,7 +531,7 @@ npm run build     # production build (~10s, 2453 modules)
 Base URL: `/api`. JSON only. Two auth systems coexist during migration:
 
 - **v1** (`/api/auth`, `/api/tasks`): MongoDB JWT — the SPA no longer calls these
-- **v2** (`/api/v2/*`): Postgres JWT — the SPA's only API surface
+- **v2** (`/api/v2/*`): MongoDB JWT — the SPA's only API surface
 
 ### v2 Auth
 
@@ -611,31 +590,19 @@ Full API reference: see [`docs/API.md`](docs/API.md).
 
 ## Database
 
-### PostgreSQL (v2, current)
+### MongoDB (MERN stack)
 
-11 tables with UUID PKs, FKs with deliberate `ON DELETE`, CHECKs, and
-partial/composite indexes on hot paths.
+Seven collections via Mongoose (`server/models/`):
 
-Key tables: `users`, `user_preferences`, `goals`, `projects`, `tasks`,
-`task_dependencies` (relational DAG edges), `task_events` (append-only audit
-trail), `work_sessions` (normalized focus sessions), `plan_versions` +
-`plan_items` (versioned schedules), `task_tags`.
+- **`users`** — auth credentials, profile, preferences sub-document (planner rhythm), embedded `focusSessions[]` (v1 compatibility).
+- **`tasks`** — full v2 task shape: importance/urgency/difficulty/friction 1–5, `estimatedMinutes`, `deadline`, `status`, `dependencies[]` (ObjectId refs), `priorityScore/Tier`, `energyFit`, `commitmentType`, `stakeholder`, `version` (optimistic concurrency), `goalId`, `projectId`, `parentTaskId`.
+- **`goals`** — high-level outcomes created by the planner, scoped to a user.
+- **`projects`** — task groupings under optional goals.
+- **`taskevents`** — append-only audit trail powering analytics, adherence, drift, and the decision log.
+- **`worksessions`** — normalized focus sessions (calibration, deviation detection, plan-debt).
+- **`planversions`** — versioned planner/replan snapshots with computed health and ordered item list.
 
-Hot indexes:
-
-```sql
-CREATE INDEX ix_tasks_user_priority ON tasks(user_id, priority_score DESC)
-  WHERE status IN ('pending','in-progress');   -- GET /top feed
-CREATE INDEX ix_tasks_user_status ON tasks(user_id, status);          -- lists
-CREATE INDEX ix_active_task_deadlines ON tasks(deadline)
-  WHERE status <> 'completed';                  -- overdue scan
-CREATE INDEX ix_events_user_time ON task_events(user_id, created_at DESC);
-```
-
-### MongoDB (v1, legacy)
-
-Two collections (`users`, `tasks`) via Mongoose. Kept running; new
-development targets Postgres. The SPA no longer calls v1 routes.
+Hot indexes on `tasks`: `{owner, priorityScore}`, `{owner, status}`, `{owner, deadline}`, `{owner, goalId}`, `{owner, projectId}`.
 
 Full database docs: see [`docs/DATABASE.md`](docs/DATABASE.md).
 
@@ -666,7 +633,9 @@ PrioSync/
 │   ├── cache/              # Redis cache-aside (optional)
 │   ├── config/             # DB config
 │   ├── controllers/        # thin HTTP shaping
-│   ├── db/                 # pgClient, schema.sql, verify, migrations
+│   ├── db/                 # (empty — no SQL layer)
+│   ├── models/             # Mongoose schemas (User, Task, Goal, Project,
+│   │                       #   TaskEvent, WorkSession, PlanVersion)
 │   ├── dsa-engine/         # pure algorithms: priority, heap, DAG, scheduler
 │   ├── jobs/               # BullMQ workers (optional)
 │   ├── middleware/         # auth, errorHandler, observability, rateLimit
@@ -682,7 +651,7 @@ PrioSync/
 │
 ├── docs/                    # Architecture, API, Database, Design System docs
 ├── .github/workflows/       # CI (server unit tests + client lint/build)
-├── docker-compose.yml       # full local stack (Postgres + Redis + API + web)
+├── docker-compose.yml       # full local stack (MongoDB + Redis + API + web)
 └── README.md                # this file
 ```
 
@@ -725,8 +694,7 @@ Full design system: see [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 - **Runtime:** Node.js ≥20, ESM
 - **Framework:** Express 4
-- **Database:** PostgreSQL via `pg` 8 (Neon in prod, container locally)
-- **Legacy DB:** MongoDB via Mongoose 8 (v1 routes only)
+- **Database:** MongoDB via Mongoose 8 (Atlas in prod, local container with Docker)
 - **Cache/Jobs:** Redis 7 via `ioredis` 5 + BullMQ 5 (both optional)
 - **Validation:** Zod 3
 - **Security:** Helmet 8, JWT, bcryptjs
@@ -747,7 +715,7 @@ Full design system: see [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 ### Infrastructure
 
-- **Database:** PostgreSQL 16 (Neon in prod, container locally)
+- **Database:** MongoDB 7 (Atlas in prod, local container with Docker)
 - **Cache:** Redis 7 (optional)
 - **Containerization:** Docker + Docker Compose
 - **CI:** GitHub Actions (server unit tests, client lint + build)
@@ -771,8 +739,6 @@ Services: Postgres 16, Redis 7, API (Node), Web (nginx).
 **Server** (Render, Railway, Fly.io, or any Node host):
 - Set environment variables from `server/.env.example`
 - `npm ci --omit=dev && npm start`
-- Run `node db/verify.js --apply` once to create tables
-- Run `node db/migrate.js` to apply migrations
 
 **Client** (Vercel, Netlify, or any static host):
 - Set `VITE_API_URL` to your API URL
@@ -780,27 +746,13 @@ Services: Postgres 16, Redis 7, API (Node), Web (nginx).
 - Serve the `dist/` folder
 - The included `nginx.conf` handles SPA routing + API proxy for self-hosting
 
-### Database migration (Mongo → Postgres)
-
-```bash
-mongodump --uri="$MONGO_URI" --out=backup/           # 1. backup
-node server/db/verify.js --apply                      # 2. schema on target
-node server/db/migrate-mongo-to-postgres.js --dry-run # 3. counts only
-node server/db/migrate-mongo-to-postgres.js --apply   # 4. write
-# 5. parity check: script prints mongo vs pg counts — must match
-```
-
-The migration script is idempotent (`mongo_id` upserts), per-user
-transactional, orphan/self-edge tolerant. Password hashes carry over, so
-credentials keep working.
-
 ---
 
 ## Observability
 
 - **Pino JSON logs** with secret redaction
 - Per-route latency/error counters
-- PG latency (slow >200ms logged with SQL prefix)
+- MongoDB query latency (slow >200ms logged)
 - Cache hit/miss, job outcomes, AI calls
 - All metrics at `GET /api/metrics` (Prometheus text format)
 
@@ -808,10 +760,9 @@ credentials keep working.
 
 | Measurement | Value | Context |
 |---|---|---|
-| PG round-trip | ~250ms | Neon from dev sandbox |
+| MongoDB round-trip | ~50ms | Atlas M0 free tier |
 | Register latency | ~1.5s | bcrypt-12 dominates (honestly flagged `slow`) |
 | Unit suite | ~4s | 161 tests, no network |
-| PG integration | ~155s | 24 files / 185 tests, latency-bound |
 | Client lib tests | <1s | 7 tests |
 | `vite build` | ~10s | 2453 modules |
 | Docker images | api 292MB, web 97MB | `npm ci --omit=dev`, nginx static |
@@ -820,12 +771,11 @@ credentials keep working.
 
 ## Roadmap
 
-1. Migration cutover where Atlas is reachable (script + runbook exist)
-2. Time-aware scheduling (clock-time slots in `plan_items`)
-3. Redis sliding-window limits, reminder jobs, planner-AI background path
-4. Component tests once UI logic outgrows fetch wrappers
-5. Per-project/tag calibration splits
-6. `planning_risk_snapshots` table fed by the BullMQ recalc worker (if read load justifies it)
+1. Time-aware scheduling (clock-time slots in plan items)
+2. Redis sliding-window limits, reminder jobs, planner-AI background path
+3. Component tests once UI logic outgrows fetch wrappers
+4. Per-project/tag calibration splits
+5. Planning risk snapshots collection fed by the BullMQ recalc worker
 
 ---
 
@@ -838,9 +788,8 @@ credentials keep working.
 5. Commit with a clear message
 6. Open a pull request
 
-**Layering rules:** Controllers never touch SQL; repositories never touch the
-engine; the engine never touches I/O. Mutations write a `task_events` row in
-the same transaction.
+**Layering rules:** Controllers never touch queries; repositories never touch the
+engine; the engine never touches I/O. Mutations record a TaskEvent alongside every write.
 
 **Design rules:** Follow `docs/DESIGN_SYSTEM.md`. Icons only through
 `PrioIcon.jsx`. Copy follows `docs/PRODUCT_WRITING_GUIDELINES.md` (numbers over

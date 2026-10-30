@@ -3,8 +3,8 @@ import {
     getTasks, getTask, createTask, updateTask, deleteTask,
     replaceDependencies, getTopTasks, getStats, getDAG,
     getExplain, getNext, logFocusSession, recalc,
-} from '../controllers/pgTaskController.js';
-import { protectPg } from '../middleware/pgAuth.js';
+} from '../controllers/mongoTaskController.js';
+import { protectMongo } from '../middleware/mongoAuth.js';
 import {
     validate, taskCreateSchema, taskUpdateSchema,
     dependenciesSchema, focusSessionSchema,
@@ -12,7 +12,7 @@ import {
 
 const router = express.Router();
 
-router.use(protectPg);
+router.use(protectMongo);
 
 router.get('/top', getTopTasks);
 router.get('/stats', getStats);

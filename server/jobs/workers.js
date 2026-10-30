@@ -6,7 +6,7 @@ import { Worker } from 'bullmq';
 import { bullConnection } from '../cache/redisClient.js';
 import logger from '../utils/logger.js';
 import { jobStats } from '../utils/metrics.js';
-import { rescoreUser } from '../services/pgTaskService.js';
+import { rescoreUser } from '../services/mongoTaskService.js';
 import { bustUser } from '../cache/taskCache.js';
 
 export const runRecalc = async ({ userId }) => {
